@@ -8,10 +8,13 @@
 int main(int argc, char** argv)
 {
     char buffer[MAX_BUFFER];
+    char payload[MAX_BUFFER + 1];
     uint32_t inputSize;
     int socketFD; // Socket file descriptor
     int port;
     int ip;
+    int i;
+
 
     // get port number and IP from command line
     if (argc < 2)
@@ -38,15 +41,21 @@ int main(int argc, char** argv)
     }
 
     // connect to a remote server on a certain IP and port
+    // UNTESTED PLZ REVIEW
+    connect(socketFD, &ip, sizeof(ip));
 
     // reading user input till ctrl+d
     while(scanf("%s", buffer) != EOF){
         inputSize = strlen(buffer);
+        // setting the first elem to be the size
+        payload[0] = inputSize;
+        // copying the input into the payload
+        for(int i=0; i<inputSize; i++){
+            payload[i+1] = buffer[i];
+        }
         // send the data over to the server TODO
-
+        ssize_t write(socketFD, payload, inputSize);
     }
-
-    // user terminated the program so send 0 to the server and self close
 
     // Close socket
     if (close(socketFD)) // close returns -1 on error
