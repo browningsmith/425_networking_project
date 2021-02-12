@@ -10,6 +10,20 @@ int main(int argc, char** argv)
     char buffer[MAX_BUFFER];
     uint32_t inputSize;
     int socketFD; // Socket file descriptor
+    int port;
+    int ip;
+
+    // get port number and IP from command line
+    if (argc < 2)
+    {
+        printf(
+            "ERROR: No port specified!\n"
+            "Usage: ./server portNumber\n"
+        );
+        return -1;
+    }
+    ip = atoi(argv[1]);
+    port = atoi(argv[2]);
 
     // Create socket
     socketFD = socket(AF_INET, SOCK_STREAM, 0);
@@ -22,6 +36,8 @@ int main(int argc, char** argv)
     {
         printf("Client created socket.\n");
     }
+
+    // connect to a remote server on a certain IP and port
 
     // reading user input till ctrl+d
     while(scanf("%s", buffer) != EOF){
