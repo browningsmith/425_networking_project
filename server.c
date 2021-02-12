@@ -5,12 +5,14 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#define BUFFLEN 1024
 #define PORT 8080
 
 int main(int argc, char** argv)
 {
     int socketFD; // Socket file descriptor
     struct sockaddr_in serverAddress;
+    char receiveBuffer[BUFFLEN];
 
     // Create socket
     socketFD = socket(AF_INET, SOCK_STREAM, 0);
@@ -32,12 +34,23 @@ int main(int argc, char** argv)
     // bind returns -1 on error
     if (bind(socketFD, (struct sockaddr*) &serverAddress, sizeof(serverAddress)) < 0)
     {
-        perror("Server unable to bind socket");
+        perror("Server unable to bind socket to port");
         return -1;
     }
     else
     {
-        printf("Server bound socket.\n");
+        printf("Server bound socket to port %i.\n", PORT);
+    }
+
+    // listen to incoming connections
+    if (listen(socketFD, 5) < 0) // listen returns -1 on error
+    {
+        perror("Server unable to listen to port");
+        return -1;
+    }
+    else
+    {
+        printf("Server set to listen on port %i.\n", PORT);
     }
 
 
