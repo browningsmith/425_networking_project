@@ -19,7 +19,7 @@ int main(int argc, char** argv)
     struct sockaddr clientAddress;
     socklen_t clientAddressLength;
     uint32_t messageLength;
-    char receiveBuffer[BUFFLEN];
+    void* receiveBuffer = malloc(BUFFLEN);
 
     // Get port number from command line
     if (argc < 2)
@@ -85,6 +85,24 @@ int main(int argc, char** argv)
         printf("Server accepted connection from client!\n");
     }
 
+    messageLength = 1; // As long as messageLength is greater than 0, continue trying to read
+    while (messageLength > 0)
+    {
+        // Read first 4 bytes, the length of message
+        bytesRead = recv(clientSocketFD, (void *) &messageLength, 4, 0);
+        if (bytesRead < 0) // recv returns -1 on error
+        {
+            perror("Server unable to read last message from client");
+            return -1;
+        }
+        else
+        {
+            printf("Server read %li bytes from client\n", bytesRead);
+        }
+
+        printf("Incoming message length: %i", messageLength);
+    }
+
     // Close client socket
     if (close(clientSocketFD)) // close returns -1 on error
     {
@@ -104,6 +122,9 @@ int main(int argc, char** argv)
     {
         printf("Server closed server socket.\n");
     }
+
+    // Free receiveBuffer
+    free(receiveBuffer);
 
     return 0;
 }
