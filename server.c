@@ -10,9 +10,11 @@
 
 int main(int argc, char** argv)
 {
-    int socketFD; // Socket file descriptor
+    int serverSocketFD, clientSocketFD; // Socket file descriptor
     int port;
     struct sockaddr_in serverAddress;
+    struct sockaddr clientAddress;
+    socklen_t clientAddressLength;
     char receiveBuffer[BUFFLEN];
 
     // Get port number from command line
@@ -27,9 +29,9 @@ int main(int argc, char** argv)
     port = atoi(argv[1]);
     printf("Port number specified: %i\n", port);
 
-    // Create socket
-    socketFD = socket(AF_INET, SOCK_STREAM, 0);
-    if (socketFD < 0) // socket returns -1 on error
+    // Create server socket
+    serverSocketFD = socket(AF_INET, SOCK_STREAM, 0);
+    if (serverSocketFD < 0) // socket returns -1 on error
     {
         perror("Server unable to create socket");
         return -1;
@@ -39,13 +41,13 @@ int main(int argc, char** argv)
         printf("Server created socket.\n");
     }
 
-    // Bind socket to port
+    // Bind server to port
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_addr.s_addr = INADDR_ANY;
     serverAddress.sin_port = htons(port);
 
     // bind returns -1 on error
-    if (bind(socketFD, (struct sockaddr*) &serverAddress, sizeof(serverAddress)) < 0)
+    if (bind(serverSocketFD, (struct sockaddr*) &serverAddress, sizeof(serverAddress)) < 0)
     {
         perror("Server unable to bind socket to port");
         return -1;
@@ -56,7 +58,7 @@ int main(int argc, char** argv)
     }
 
     // listen to incoming connections
-    if (listen(socketFD, 5) < 0) // listen returns -1 on error
+    if (listen(serverSocketFD, 5) < 0) // listen returns -1 on error
     {
         perror("Server unable to listen to port");
         return -1;
@@ -66,15 +68,37 @@ int main(int argc, char** argv)
         printf("Server set to listen on port %i.\n", port);
     }
 
-
-    // Close socket
-    if (close(socketFD)) // close returns -1 on error
+    // accept an incoming connection
+    printf("Server waiting for client to connect...\n");
+    clientSocketFD = accept(serverSocketFD, &clientAddress, &clientAddressLength);
+    if (clientSocketFD < -1) // accept returns -1 on error
     {
-        perror("Server unable to close socket");
+        perror("Server unable to receive connection from client");
+        return -1;
     }
     else
     {
-        printf("Server closed socket.\n");
+        printf("Server accepted connection from client!\n");
+    }
+
+    // Close server socket
+    if (close(serverSocketFD)) // close returns -1 on error
+    {
+        perror("Server unable to close server socket");
+    }
+    else
+    {
+        printf("Server closed server socket.\n");
+    }
+
+    // Close client socket
+    if (close(clientSocketFD)) // close returns -1 on error
+    {
+        perror("Server unable to close client socket");
+    }
+    else
+    {
+        printf("Server closed client socket.\n");
     }
 
 
