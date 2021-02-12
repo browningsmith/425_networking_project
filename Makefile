@@ -1,10 +1,10 @@
 all: server client
 
 server: server.c
-	gcc -o server server.c
+	gcc -std=c99 -o server server.c
 
 client: client.c
-	gcc -o client client.c
+	gcc -std=c99 -o client client.c
 
 clean: cleanserver cleanclient
 
