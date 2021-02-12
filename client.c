@@ -42,10 +42,11 @@ int main(int argc, char** argv)
 
     // connect to a remote server on a certain IP and port
     // UNTESTED PLZ REVIEW
-    connect(socketFD, &ip, sizeof(ip));
+    connect(socketFD, ip, sizeof(ip));
 
     // reading user input till ctrl+d
     while(scanf("%s", buffer) != EOF){
+        // technically strlen should not be used in this assignment but with scanf it works
         inputSize = strlen(buffer);
         // setting the first elem to be the size
         payload[0] = inputSize;
