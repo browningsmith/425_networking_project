@@ -17,11 +17,11 @@ int main(int argc, char** argv)
 
 
     // get port number and IP from command line
-    if (argc < 2)
+    if (argc < 3)
     {
         printf(
-            "ERROR: No port specified!\n"
-            "Usage: ./server portNumber\n"
+            "ERROR: No port/IP specified!\n"
+            "Usage: ./client IP portNumber\n"
         );
         return -1;
     }
