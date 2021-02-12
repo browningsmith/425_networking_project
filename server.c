@@ -2,7 +2,10 @@
 
 int main(int argc, char** argv)
 {
-    printf("Hello, I am a server!\nI like to serve things!\n");
+    printf(
+        "Hello, I am a server!\n"
+        "Let me sing you the song of my people!\n"
+    );
 
     return 0;
 }
