@@ -40,9 +40,16 @@ int main(int argc, char** argv)
         printf("Client created socket.\n");
     }
 
+    // Bind socket to port and IP
+    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_addr.s_addr = ip
+    serverAddress.sin_port = htons(port);
+
     // connect to a remote server on a certain IP and port
-    // UNTESTED PLZ REVIEW
-    connect(socketFD, ip, sizeof(ip));
+    if (connect(socketFD, (SA*)&servaddr, sizeof(servaddr)) != 0){
+        perror("client unable to connect to server");
+        return -1;
+    }
 
     // reading user input till ctrl+d
     while(scanf("%s", buffer) != EOF){
