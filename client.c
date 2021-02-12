@@ -3,7 +3,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <string.h>
-#define MAX_BUFFER 800
+#define MAX_BUFFER 1024
 
 int main(int argc, char** argv)
 {
