@@ -1,8 +1,11 @@
-#include <unistd.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <string.h>
+#include <unistd.h>
 #define MAX_BUFFER 1024
 
 int main(int argc, char** argv)
@@ -64,7 +67,7 @@ int main(int argc, char** argv)
             payload[i+1] = buffer[i];
         }
         // send the data over to the server TODO
-        ssize_t write(socketFD, payload, inputSize);
+        write(socketFD, payload, inputSize);
         // clean up arrays for no buggies
         bzero(buffer, sizeof(buffer));
         bzero(payload, sizeof(payload));
