@@ -23,21 +23,14 @@ int main(int argc, char** argv)
         printf("Client created socket.\n");
     }
 
-    // setting in inputing state
-    while(1){
-        // clearing the buffer each pass
-        bzero(buffer, sizeof(buffer)); 
-        printf("enter input: ");
-        // taking a line of user input
-        scanf("%s", buffer);
+    // reading user input till ctrl+d
+    while(scanf("%s", buffer) != EOF){
         inputSize = strlen(buffer);
         // send the data over to the server TODO
 
-
-        // if the input is zero close local program after sending
-        if(buffer[0] == '0') break;
-
     }
+
+    // user terminated the program so send 0 to the server and self close
 
     // Close socket
     if (close(socketFD)) // close returns -1 on error
