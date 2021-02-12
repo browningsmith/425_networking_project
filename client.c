@@ -10,7 +10,9 @@ int main(int argc, char** argv)
     char buffer[MAX_BUFFER];
     char payload[MAX_BUFFER + 1];
     uint32_t inputSize;
+    struct sockaddr_in serverAddress, cli;
     int socketFD; // Socket file descriptor
+    int connFD;
     int port;
     int ip;
     int i;
@@ -46,7 +48,7 @@ int main(int argc, char** argv)
     serverAddress.sin_port = htons(port);
 
     // connect to a remote server on a certain IP and port
-    if (connect(socketFD, (SA*)&servaddr, sizeof(servaddr)) != 0){
+    if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) != 0){
         perror("client unable to connect to server");
         return -1;
     }
