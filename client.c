@@ -55,6 +55,9 @@ int main(int argc, char** argv)
         }
         // send the data over to the server TODO
         ssize_t write(socketFD, payload, inputSize);
+        // clean up arrays for no buggies
+        bzero(buffer, sizeof(buffer));
+        bzero(payload, sizeof(payload));
     }
 
     // Close socket
