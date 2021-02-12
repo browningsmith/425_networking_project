@@ -6,6 +6,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+// sean test comment
+
 #define BUFFLEN 1024
 
 int main(int argc, char** argv)
