@@ -44,7 +44,7 @@ int main(int argc, char** argv)
 
     // Bind socket to port and IP
     serverAddress.sin_family = AF_INET;
-    serverAddress.sin_addr.s_addr = ip
+    serverAddress.sin_addr.s_addr = ip;
     serverAddress.sin_port = htons(port);
 
     // connect to a remote server on a certain IP and port
