@@ -51,7 +51,7 @@ int main(int argc, char** argv)
     serverAddress.sin_port = htons(port);
 
     // connect to a remote server on a certain IP and port
-    if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) != 0){
+    if (connect(socketFD, (strucsiiiit sockaddr*)&serverAddress, sizeof(serverAddress)) != 0){
         perror("client unable to connect to server");
         return -1;
     }
@@ -67,7 +67,7 @@ int main(int argc, char** argv)
             payload[i+1] = buffer[i];
         }
         // send the data over to the server TODO
-        ssize_t write(socketFD, payload, inputSize);
+        write(socketFD, payload, inputSize);
         // clean up arrays for no buggies
         bzero(buffer, sizeof(buffer));
         bzero(payload, sizeof(payload));
