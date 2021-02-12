@@ -14,9 +14,11 @@ int main(int argc, char** argv)
 {
     int serverSocketFD, clientSocketFD; // Socket file descriptor
     int port;
+    size_t bytesRead;
     struct sockaddr_in serverAddress;
     struct sockaddr clientAddress;
     socklen_t clientAddressLength;
+    uint32_t messageLength;
     char receiveBuffer[BUFFLEN];
 
     // Get port number from command line
@@ -83,16 +85,6 @@ int main(int argc, char** argv)
         printf("Server accepted connection from client!\n");
     }
 
-    // Close server socket
-    if (close(serverSocketFD)) // close returns -1 on error
-    {
-        perror("Server unable to close server socket");
-    }
-    else
-    {
-        printf("Server closed server socket.\n");
-    }
-
     // Close client socket
     if (close(clientSocketFD)) // close returns -1 on error
     {
@@ -103,6 +95,15 @@ int main(int argc, char** argv)
         printf("Server closed client socket.\n");
     }
 
+    // Close server socket
+    if (close(serverSocketFD)) // close returns -1 on error
+    {
+        perror("Server unable to close server socket");
+    }
+    else
+    {
+        printf("Server closed server socket.\n");
+    }
 
     return 0;
 }
