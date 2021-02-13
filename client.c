@@ -66,10 +66,11 @@ int main(int argc, char** argv)
         inputSize = strlen(buffer);
         printf("inputSize: %i", inputSize);
         // setting the first elem to be the size
-        payload[0] = inputSize;
+        ((uint32_t *)payload)[0] = inputSize;
+        printf("inputSize in buffer: %i", ((uint32_t *)payload)[0]);
         // copying the input into the payload
-        for(int i=0; i<inputSize; i++){
-            payload[i+1] = buffer[i];
+        for(int i=4; i<inputSize; i++){
+            payload[i] = buffer[i];
         }
         // send the payload to the server
         write(socketFD, payload, inputSize + sizeof(uint32_t));

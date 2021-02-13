@@ -99,7 +99,7 @@ int main(int argc, char** argv)
         {
             printf("Server read %li bytes from client\n", bytesRead);
         }
-        messageLength = htons(*((uint32_t*) receiveBuffer));
+        messageLength = *((uint32_t*) receiveBuffer);
         printf("Incoming message length: %i\n", messageLength);
     }
 
