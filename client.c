@@ -1,5 +1,7 @@
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -67,8 +69,8 @@ int main(int argc, char** argv)
         for(int i=0; i<inputSize; i++){
             payload[i+1] = buffer[i];
         }
-        // send the data over to the server TODO
-        write(socketFD, payload, inputSize);
+        // send the payload to the server
+        write(socketFD, payload, inputSize + sizeof(uint32_t));
         // clean up arrays for no buggies
         bzero(buffer, sizeof(buffer));
         bzero(payload, sizeof(payload));
