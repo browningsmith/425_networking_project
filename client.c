@@ -44,10 +44,10 @@ int main(int argc, char** argv)
         perror("Client unable to create socket");
         return -1;
     }
-    else
-    {
-        printf("Client created socket.\n");
-    }
+    // else
+    // {
+    //     printf("Client created socket.\n");
+    // }
 
     // Bind socket to port and IP
     serverAddress.sin_family = AF_INET;
@@ -56,7 +56,7 @@ int main(int argc, char** argv)
 
     // connect to a remote server on a certain IP and port
     if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) != 0){
-        perror("client unable to connect to server");
+        perror("Client unable to connect to server");
         return -1;
     }
 
@@ -64,13 +64,11 @@ int main(int argc, char** argv)
     while(scanf("%s", buffer) != EOF){
         // technically strlen should not be used in this assignment but with scanf it works
         inputSize = strlen(buffer);
-        printf("inputSize: %i", inputSize);
         // setting the first elem to be the size
         ((uint32_t *)payload)[0] = inputSize;
-        printf("inputSize in buffer: %i", ((uint32_t *)payload)[0]);
         // copying the input into the payload
-        for(int i=4; i<inputSize; i++){
-            payload[i] = buffer[i];
+        for(int i=0; i<inputSize; i++){
+            payload[i + 4] = buffer[i];
         }
         // send the payload to the server
         write(socketFD, payload, inputSize + sizeof(uint32_t));
@@ -84,10 +82,10 @@ int main(int argc, char** argv)
     {
         perror("Client unable to close socket");
     }
-    else
-    {
-        printf("Client closed socket.\n");
-    }
+    // else
+    // {
+    //     printf("Client closed socket.\n");
+    // }
 
 
     return 0;
