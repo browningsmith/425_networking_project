@@ -1,3 +1,4 @@
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <stdlib.h>
@@ -33,7 +34,7 @@ int main(int argc, char** argv)
         );
         return -1;
     }
-    ip = atoi(argv[1]);
+    ip = inet_addr(argv[1]);
     port = atoi(argv[2]);
 
     // Create socket
@@ -63,6 +64,7 @@ int main(int argc, char** argv)
     while(scanf("%s", buffer) != EOF){
         // technically strlen should not be used in this assignment but with scanf it works
         inputSize = strlen(buffer);
+        printf("inputSize: %i", inputSize);
         // setting the first elem to be the size
         payload[0] = inputSize;
         // copying the input into the payload

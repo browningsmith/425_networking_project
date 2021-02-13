@@ -89,7 +89,7 @@ int main(int argc, char** argv)
     while (messageLength > 0)
     {
         // Read first 4 bytes, the length of message
-        bytesRead = recv(clientSocketFD, (void *) &messageLength, 4, 0);
+        bytesRead = recv(clientSocketFD, receiveBuffer, 4, 0);
         if (bytesRead < 0) // recv returns -1 on error
         {
             perror("Server unable to read last message from client");
@@ -99,8 +99,8 @@ int main(int argc, char** argv)
         {
             printf("Server read %li bytes from client\n", bytesRead);
         }
-
-        printf("Incoming message length: %i", messageLength);
+        messageLength = htons(*((uint32_t*) receiveBuffer));
+        printf("Incoming message length: %i\n", messageLength);
     }
 
     // Close client socket
