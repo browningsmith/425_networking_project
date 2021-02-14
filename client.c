@@ -21,7 +21,7 @@ int main(int argc, char** argv)
     int socketFD; // Socket file descriptor
     int connFD;
     int port;
-    int ip;
+    //int ip;
     int i;
 
 
@@ -34,7 +34,7 @@ int main(int argc, char** argv)
         );
         return -1;
     }
-    ip = inet_addr(argv[1]);
+    //ip = atoi(argv[1]);
     port = atoi(argv[2]);
 
     // Create socket
@@ -51,7 +51,7 @@ int main(int argc, char** argv)
 
     // Bind socket to port and IP
     serverAddress.sin_family = AF_INET;
-    serverAddress.sin_addr.s_addr = ip;
+    serverAddress.sin_addr.s_addr = inet_addr(argv[1]);
     serverAddress.sin_port = htons(port);
 
     // connect to a remote server on a certain IP and port
