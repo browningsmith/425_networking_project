@@ -14,14 +14,15 @@
 
 int main(int argc, char** argv)
 {
-    char buffer[MAX_BUFFER];
-    char payload[MAX_BUFFER + 1];
+    char buffer[MAX_BUFFER + 2]; // Include two extra bytes, one for the newline or EOF character, and one for the null terminator.
+                                 // These will not be transmitted to the server
+    char payload[MAX_BUFFER + 4];
     uint32_t inputSize;
     struct sockaddr_in serverAddress, cli;
     int socketFD; // Socket file descriptor
     int connFD;
     int port;
-    int ip;
+    //int ip;
     int i;
 
 
@@ -34,7 +35,7 @@ int main(int argc, char** argv)
         );
         return -1;
     }
-    ip = inet_addr(argv[1]);
+    //ip = atoi(argv[1]);
     port = atoi(argv[2]);
 
     // Create socket
@@ -51,7 +52,7 @@ int main(int argc, char** argv)
 
     // Bind socket to port and IP
     serverAddress.sin_family = AF_INET;
-    serverAddress.sin_addr.s_addr = ip;
+    serverAddress.sin_addr.s_addr = inet_addr(argv[1]);
     serverAddress.sin_port = htons(port);
 
     // connect to a remote server on a certain IP and port
@@ -61,9 +62,9 @@ int main(int argc, char** argv)
     }
 
     // reading user input till ctrl+d
-    while(scanf("%s", buffer) != EOF){
-        // technically strlen should not be used in this assignment but with scanf it works
-        inputSize = strlen(buffer);
+    while(fgets(buffer, MAX_BUFFER + 2, stdin) != NULL){
+        // technically strlen should not be used in this assignment but with fgets it works
+        inputSize = strlen(buffer) - 1; // Disregard newline or EOF character
         // setting the first elem to be the size
         ((uint32_t *)payload)[0] = inputSize;
         // copying the input into the payload
