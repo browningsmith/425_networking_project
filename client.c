@@ -1,3 +1,14 @@
+/*
+Authors:    Keith Smith, Sean Callahan
+Assignment: Mobile TCP Proxy, Milestone 1
+Class:      425
+Due Date:   02/16/2021
+
+Note:       This is the client part of the program where the IP and port number are
+            given as command line arguments. As far as the design goes the payload is
+            constructed as a string array without a termination character and the first
+            4 bytes is the length of the broadcast string
+*/
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -25,7 +36,6 @@ int main(int argc, char** argv)
     //int ip;
     int i;
 
-
     // get port number and IP from command line
     if (argc < 3)
     {
@@ -35,7 +45,6 @@ int main(int argc, char** argv)
         );
         return -1;
     }
-    //ip = atoi(argv[1]);
     port = atoi(argv[2]);
 
     // Create socket
@@ -45,10 +54,6 @@ int main(int argc, char** argv)
         perror("Client unable to create socket");
         return -1;
     }
-    // else
-    // {
-    //     printf("Client created socket.\n");
-    // }
 
     // Bind socket to port and IP
     serverAddress.sin_family = AF_INET;
@@ -83,11 +88,5 @@ int main(int argc, char** argv)
     {
         perror("Client unable to close socket");
     }
-    // else
-    // {
-    //     printf("Client closed socket.\n");
-    // }
-
-
     return 0;
 }
