@@ -1,3 +1,16 @@
+/*
+Authors:    Keith Smith, Sean Callahan
+Assignment: Mobile TCP Proxy, Milestone 1
+File:       server.c
+Class:      425
+Due Date:   02/16/2021
+
+Note:       This is the Server part of the program where the port number is
+            given as command line argument.. As far as the design goes the payload is
+            constructed as a string array without a termination character and the first
+            4 bytes is the length of the broadcast string. The size is read first then
+            printed to the console followed by the message in the payload
+*/
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <stdio.h>
@@ -5,9 +18,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-// sean test comment
-
 #define BUFFLEN 1024
 
 int main(int argc, char** argv)
@@ -31,7 +41,6 @@ int main(int argc, char** argv)
         return -1;
     }
     port = atoi(argv[1]);
-    // printf("Port number specified: %i\n", port);
 
     // Create server socket
     serverSocketFD = socket(AF_INET, SOCK_STREAM, 0);
@@ -40,10 +49,6 @@ int main(int argc, char** argv)
         perror("Server unable to create socket");
         return -1;
     }
-    // else
-    // {
-    //     printf("Server created socket.\n");
-    // }
 
     // Bind server to port
     serverAddress.sin_family = AF_INET;
@@ -56,10 +61,6 @@ int main(int argc, char** argv)
         perror("Server unable to bind socket to port");
         return -1;
     }
-    // else
-    // {
-    //     printf("Server bound socket to port %i.\n", port);
-    // }
 
     // listen to incoming connections
     if (listen(serverSocketFD, 5) < 0) // listen returns -1 on error
@@ -67,24 +68,16 @@ int main(int argc, char** argv)
         perror("Server unable to listen to port");
         return -1;
     }
-    // else
-    // {
-    //     printf("Server set to listen on port %i.\n", port);
-    // }
-
-    // accept an incoming connection
-    // printf("Server waiting for client to connect...\n");
+    
+    // accepting the connected client
     clientSocketFD = accept(serverSocketFD, &clientAddress, &clientAddressLength);
     if (clientSocketFD < -1) // accept returns -1 on error
     {
         perror("Server unable to receive connection from client");
         return -1;
     }
-    // else
-    // {
-    //     printf("Server accepted connection from client!\n");
-    // }
 
+    // reading a message
     messageLength = 1; // As long as messageLength is greater than 0, continue trying to read
     while (messageLength > 0)
     {
@@ -94,23 +87,15 @@ int main(int argc, char** argv)
         {
             break;
         }
-        // else
-        // {
-        //     printf("Server read %li bytes from client\n", bytesRead);
-        // }
+        
         messageLength = *((uint32_t*) receiveBuffer);
-        // printf("Message length: %i\n", messageLength);
-
+        
         // Read payload
         bytesRead = recv(clientSocketFD, receiveBuffer, messageLength, 0);
         if (bytesRead < 1) // recv returns -1 on error, or 0 on close
         {
             break;
         }
-        // else
-        // {
-        //     printf("Server read %li bytes from client\n", bytesRead);
-        // }
         
         // Write payload to stdout. Using write since buffer doesn't have a null terminating character
         write(STDOUT_FILENO, receiveBuffer, messageLength);
@@ -122,20 +107,12 @@ int main(int argc, char** argv)
     {
         perror("Server unable to close client socket");
     }
-    else
-    // {
-    //     printf("Server closed client socket.\n");
-    // }
 
     // Close server socket
     if (close(serverSocketFD)) // close returns -1 on error
     {
         perror("Server unable to close server socket");
     }
-    else
-    // {
-    //     printf("Server closed server socket.\n");
-    // }
 
     // Free receiveBuffer
     free(receiveBuffer);
