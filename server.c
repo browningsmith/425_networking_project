@@ -89,6 +89,7 @@ int main(int argc, char** argv)
         }
         
         messageLength = *((uint32_t*) receiveBuffer);
+        printf("Payload length: %i\n", messageLength);
         
         // Read payload
         bytesRead = recv(clientSocketFD, receiveBuffer, messageLength, 0);
