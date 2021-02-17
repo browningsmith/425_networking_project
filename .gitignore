@@ -1,4 +1,6 @@
 .vscode/*
 *.o
+*.tar
+*.tar.gz
 server
 client
