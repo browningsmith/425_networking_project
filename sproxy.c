@@ -23,6 +23,8 @@ Note:       This is the Server part of the program where the port number is
 #include <sys/types.h>
 #include <unistd.h>
 
+#define TELNET_PORT 23
+
 int main(int argc, char** argv)
 {
     int listenSocketFD, clientSocketFD, serverSocketFD; // Socket file descriptor
@@ -70,10 +72,15 @@ int main(int argc, char** argv)
         return -1;
     }
 
+    // populate info for telnet daemon into serverAddress
+    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_addr.s_addr = INADDR_LOOPBACK;
+    serverAddress.sin_port = htons(TELNET_PORT);
+
     // Infinite loop, continue to listen for new connections
     while (1)
     {
-        // accepting the connected client
+        // accept a new client
         printf("sproxy waiting for new connection...\n");
         clientSocketFD = accept(listenSocketFD, &clientAddress, &clientAddressLength);
         if (clientSocketFD < -1) // accept returns -1 on error
@@ -83,6 +90,55 @@ int main(int argc, char** argv)
         else
         {
             printf("sproxy accepted new connection from client!\n");
+        }
+
+        // Create server socket
+        serverSocketFD = socket(AF_INET, SOCK_STREAM, 0);
+        if (serverSocketFD < 0) // socket returns -1 on error
+        {
+            perror("sproxy unable to create server socket");
+
+            // Close client socket, so it doesn't stay open
+            if (close(clientSocketFD)) // close returns -1 on error
+            {
+                perror("sproxy unable to properly close client socket");
+            }
+            else
+            {
+                printf("sproxy closed connection to client\n");
+            }
+
+            return -1;
+        }
+
+        // Connect to server
+        if (connect(serverSocketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) != 0)
+        {
+            perror("sproxy unable to connect to server");
+
+            // Close client socket, so it doesn't stay open
+            if (close(clientSocketFD)) // close returns -1 on error
+            {
+                perror("sproxy unable to properly close client socket");
+            }
+            else
+            {
+                printf("sproxy closed connection to client\n");
+            }
+
+            return -1;
+        }
+
+        /* TODO  Add code to relay messages between server and client */
+
+        // Close server socket
+        if (close(serverSocketFD)) // close returns -1 on error
+        {
+            perror("sproxy unable to properly close server socket");
+        }
+        else
+        {
+            printf("sproxy closed connection to server\n");
         }
 
         // Close client socket
