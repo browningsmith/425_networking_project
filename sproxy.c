@@ -108,7 +108,7 @@ int main(int argc, char** argv)
                 printf("sproxy closed connection to client\n");
             }
 
-            return -1;
+            continue; // move to accept new connection
         }
 
         // Connect to server
@@ -126,7 +126,7 @@ int main(int argc, char** argv)
                 printf("sproxy closed connection to client\n");
             }
 
-            return -1;
+            continue; // move to accept new connection
         }
 
         /* TODO  Add code to relay messages between server and client */
