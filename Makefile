@@ -1,15 +1,15 @@
-all: server client
+all: sproxy cproxy
 
-server: server.c
-	gcc -std=c99 -o server server.c
+sproxy: sproxy.c
+	gcc -std=c99 -o sproxy sproxy.c
 
-client: client.c
-	gcc -std=c99 -o client client.c
+cproxy: cproxy.c
+	gcc -std=c99 -o cproxy cproxy.c
 
-clean: cleanserver cleanclient
+clean: cleansproxy cleancproxy
 
-cleanserver:
-	-rm -f server *.o
+cleansproxy:
+	-rm -f sproxy *.o
 
-cleanclient:
-	-rm -f client *.o
+cleancproxy:
+	-rm -f cproxy *.o

@@ -1,10 +1,11 @@
 /*
 Authors:    Keith Smith, Sean Callahan
-Assignment: Mobile TCP Proxy, Milestone 1
-file:       client.c
+Assignment: Mobile TCP Proxy, Milestone 2
+file:       cproxy.c
 Class:      425
-Due Date:   02/16/2021
+Due Date:   03/11/2021
 
+TODO Update Note
 Note:       This is the client part of the program where the IP and port number are
             given as command line arguments. As far as the design goes the payload is
             constructed as a string array without a termination character and the first

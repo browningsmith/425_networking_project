@@ -1,10 +1,11 @@
 /*
 Authors:    Keith Smith, Sean Callahan
-Assignment: Mobile TCP Proxy, Milestone 1
-File:       server.c
+Assignment: Mobile TCP Proxy, Milestone 2
+File:       sproxy.c
 Class:      425
-Due Date:   02/16/2021
+Due Date:   03/11/2021
 
+TODO Update Note
 Note:       This is the Server part of the program where the port number is
             given as command line argument.. As far as the design goes the payload is
             constructed as a string array without a termination character and the first
@@ -18,6 +19,7 @@ Note:       This is the Server part of the program where the port number is
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+
 #define BUFFLEN 1024
 
 int main(int argc, char** argv)
