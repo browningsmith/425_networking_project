@@ -214,21 +214,33 @@ int main(int argc, char** argv)
             // If input is ready on serverSocket, relay to clientSocket
             if (FD_ISSET(serverSocketFD, &socketSet))
             {
+                printf("Data is available from server\n");
+                
                 if (relay(serverSocketFD, clientSocketFD, buffer, BUFFER_LEN) < 0) // relay returns -1 on error
                 {
                     printf("Error relaying from server to client, one may have closed connection\n");
                     break; // Break out of loop to move on to close server and client
                 }
             }
+            else
+            {
+                printf("Data is not available from server\n");
+            }
 
             // If input is ready on clientSocket, relay to serverSocket
             if (FD_ISSET(clientSocketFD, &socketSet))
             {
+                printf("Data is available from client\n");
+                
                 if (relay(clientSocketFD, serverSocketFD, buffer, BUFFER_LEN) < 0) // relay returns -1 on error
                 {
                     printf("Error relaying from client to server, one may have closed connection\n");
                     break; // Break out of loop to move on to close server and client
                 }
+            }
+            else
+            {
+                printf("Data is not available from client\n");
             }
         }
 
