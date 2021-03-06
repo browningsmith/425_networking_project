@@ -168,6 +168,8 @@ int main(int argc, char** argv)
         // Use select for data to be ready on both serverSocket and clientSocket
         while (1)
         {
+            /* TODO add some trace statements in this while loop to see why data is not being relayed */
+            
             // Reset socketSet
             FD_ZERO(&socketSet); // zero out socketSet
             FD_SET(serverSocketFD, &socketSet); // add server socket
@@ -208,8 +210,6 @@ int main(int argc, char** argv)
 
                 return -1;
             }
-
-            ssize_t bytesRead;
 
             // If input is ready on serverSocket, relay to clientSocket
             if (FD_ISSET(serverSocketFD, &socketSet))
