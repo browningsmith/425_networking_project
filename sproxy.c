@@ -148,6 +148,7 @@ int main(int argc, char** argv)
         }
 
         // Connect to server
+        printf("sproxy attempting to connect to server...\n");
         if (connect(serverSocketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) != 0)
         {
             perror("sproxy unable to connect to server");
@@ -164,11 +165,13 @@ int main(int argc, char** argv)
 
             continue; // move to accept new connection
         }
+        printf("sproxy successfully connected to server!\n");
 
         // Use select for data to be ready on both serverSocket and clientSocket
         while (1)
         {
             /* TODO add some trace statements in this while loop to see why data is not being relayed */
+            printf("Entered second while loop\n");
             
             // Reset socketSet
             FD_ZERO(&socketSet); // zero out socketSet
@@ -176,6 +179,7 @@ int main(int argc, char** argv)
             FD_SET(clientSocketFD, &socketSet); // add client socket
 
             // Wait indefinitely for input to be available using select
+            printf("Calling select\n");
             if(
                 select(
                     max(serverSocketFD, clientSocketFD) + 1,
