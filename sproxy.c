@@ -46,8 +46,9 @@ int max(int a, int b);
  *            char* buffer
  * Returns: int
  * 
- * Reads the message on receiveFD, and
- * writes it to sendFD
+ * Reads a message up to bufferSize bytes from
+ * receiveFD and copies it in to buffer, then
+ * writes the copied message over to sendFD
  * 
  * Returns -1 on error, 0 otherwise
  *************************************/
@@ -170,16 +171,13 @@ int main(int argc, char** argv)
 
         // Use select for data to be ready on both serverSocket and clientSocket
         while (1)
-        {
-            printf("Entered second while loop\n");
-            
+        {   
             // Reset socketSet
             FD_ZERO(&socketSet); // zero out socketSet
             FD_SET(serverSocketFD, &socketSet); // add server socket
             FD_SET(clientSocketFD, &socketSet); // add client socket
 
             // Wait indefinitely for input to be available using select
-            printf("Calling select\n");
             if(
                 select(
                     max(serverSocketFD, clientSocketFD) + 1,
@@ -217,34 +215,22 @@ int main(int argc, char** argv)
 
             // If input is ready on serverSocket, relay to clientSocket
             if (FD_ISSET(serverSocketFD, &socketSet))
-            {
-                printf("Data is available from server\n");
-                
+            {   
                 if (relay(serverSocketFD, clientSocketFD, buffer, BUFFER_LEN) < 0) // relay returns -1 on error
                 {
                     printf("Error relaying from server to client, one may have closed connection\n");
                     break; // Break out of loop to move on to close server and client
                 }
             }
-            else
-            {
-                printf("Data is not available from server\n");
-            }
 
             // If input is ready on clientSocket, relay to serverSocket
             if (FD_ISSET(clientSocketFD, &socketSet))
-            {
-                printf("Data is available from client\n");
-                
+            {   
                 if (relay(clientSocketFD, serverSocketFD, buffer, BUFFER_LEN) < 0) // relay returns -1 on error
                 {
                     printf("Error relaying from client to server, one may have closed connection\n");
                     break; // Break out of loop to move on to close server and client
                 }
-            }
-            else
-            {
-                printf("Data is not available from client\n");
             }
         }
 
