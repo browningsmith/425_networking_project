@@ -12,20 +12,23 @@ Note:       This is the Server part of the program where the port number is
             4 bytes is the length of the broadcast string. The size is read first then
             printed to the console followed by the message in the payload
 */
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <strings.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 int main(int argc, char** argv)
 {
-    int listenSocketFD, clientSocketFD; // Socket file descriptor
-    int listenPort;
+    int listenSocketFD, clientSocketFD, serverSocketFD; // Socket file descriptor
+    int listenPort, serverPort;
     size_t bytesRead;
-    struct sockaddr_in listenAddress;
+    struct sockaddr_in listenAddress, serverAddress;
     struct sockaddr clientAddress;
     socklen_t clientAddressLength;
 
@@ -66,26 +69,37 @@ int main(int argc, char** argv)
         perror("sproxy unable to listen to port");
         return -1;
     }
-    
-    // accepting the connected client
-    clientSocketFD = accept(listenSocketFD, &clientAddress, &clientAddressLength);
-    if (clientSocketFD < -1) // accept returns -1 on error
-    {
-        perror("sproxy to receive connection from client");
-        return -1;
-    }
-    printf("sproxy accepted connection from client!\n");
 
-    // Close client socket
-    if (close(clientSocketFD)) // close returns -1 on error
+    // Infinite loop, continue to listen for new connections
+    while (1)
     {
-        perror("sproxy unable to close client socket");
+        // accepting the connected client
+        printf("sproxy waiting for new connection...\n");
+        clientSocketFD = accept(listenSocketFD, &clientAddress, &clientAddressLength);
+        if (clientSocketFD < -1) // accept returns -1 on error
+        {
+            perror("sproxy unable to receive connection from client");
+        }
+        else
+        {
+            printf("sproxy accepted new connection from client!\n");
+        }
+
+        // Close client socket
+        if (close(clientSocketFD)) // close returns -1 on error
+        {
+            perror("sproxy unable to properly close client socket");
+        }
+        else
+        {
+            printf("sproxy closed connection to client\n");
+        }
     }
 
     // Close listen socket
     if (close(listenSocketFD)) // close returns -1 on error
     {
-        perror("sproxy unable to close server socket");
+        perror("sproxy unable to close listen socket");
     }
 
     return 0;
