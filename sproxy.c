@@ -26,6 +26,7 @@ Note:       This is the Server part of the program where the port number is
 #include <unistd.h>
 
 #define BUFFER_LEN 1024
+#define LOCALHOST "127.0.0.1"
 #define TELNET_PORT 23
 
 /*************************************
@@ -56,7 +57,7 @@ int main(int argc, char** argv)
 {
     int listenSocketFD, clientSocketFD, serverSocketFD; // Socket file descriptor
     fd_set socketSet;
-    int listenPort, serverPort;
+    int listenPort;
     struct sockaddr_in listenAddress, serverAddress;
     struct sockaddr clientAddress;
     socklen_t clientAddressLength;
@@ -110,7 +111,7 @@ int main(int argc, char** argv)
 
     // populate info for telnet daemon into serverAddress
     serverAddress.sin_family = AF_INET;
-    serverAddress.sin_addr.s_addr = INADDR_LOOPBACK;
+    serverAddress.sin_addr.s_addr = inet_addr(LOCALHOST);
     serverAddress.sin_port = htons(TELNET_PORT);
 
     // Infinite loop, continue to listen for new connections
@@ -170,7 +171,6 @@ int main(int argc, char** argv)
         // Use select for data to be ready on both serverSocket and clientSocket
         while (1)
         {
-            /* TODO add some trace statements in this while loop to see why data is not being relayed */
             printf("Entered second while loop\n");
             
             // Reset socketSet
