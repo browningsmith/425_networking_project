@@ -25,8 +25,6 @@ Note:       This is the client part of the program where the IP and port number 
 #include <unistd.h>
 
 #define BUFFER_LEN 1024
-#define LOCALHOST "127.0.0.1"
-#define TELNET_PORT 23
 
 /*************************************
  * max
@@ -57,14 +55,14 @@ int main(int argc, char** argv)
 {
     int listenSocketFD, clientSocketFD, serverSocketFD; // Socket file descriptor
     fd_set socketSet;
-    int listenPort;
+    int listenPort, serverPort;
     struct sockaddr_in listenAddress, serverAddress;
     struct sockaddr clientAddress;
     socklen_t clientAddressLength;
     void* buffer = NULL;
 
-    // Get lport, sip and sport from command line
-    if (argc < 2)
+    // Get listenPort and serverPort from command line
+    if (argc < 4)
     {
         printf(
             "ERROR: You must enter the port to listen for new connections on,\n"
@@ -74,6 +72,7 @@ int main(int argc, char** argv)
         return -1;
     }
     listenPort = atoi(argv[1]);
+    serverPort = atoi(argv[3]);
 
     // Create listen socket
     listenSocketFD = socket(AF_INET, SOCK_STREAM, 0);
@@ -110,10 +109,10 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    // populate info for telnet daemon into serverAddress
+    // populate address info for connection to server
     serverAddress.sin_family = AF_INET;
-    serverAddress.sin_addr.s_addr = inet_addr(LOCALHOST);
-    serverAddress.sin_port = htons(TELNET_PORT);
+    serverAddress.sin_addr.s_addr = inet_addr(argv[2]);
+    serverAddress.sin_port = htons(serverPort);
 
     // Infinite loop, continue to listen for new connections
     while (1)
