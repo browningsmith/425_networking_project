@@ -218,7 +218,7 @@ int main(int argc, char** argv)
             {   
                 if (relay(serverSocketFD, clientSocketFD, buffer, BUFFER_LEN) < 0) // relay returns -1 on error
                 {
-                    printf("Error relaying from server to client, one may have closed connection\n");
+                    printf("Connection closed by either server or client\n");
                     break; // Break out of loop to move on to close server and client
                 }
             }
@@ -228,7 +228,7 @@ int main(int argc, char** argv)
             {   
                 if (relay(clientSocketFD, serverSocketFD, buffer, BUFFER_LEN) < 0) // relay returns -1 on error
                 {
-                    printf("Error relaying from client to server, one may have closed connection\n");
+                    printf("Connection closed by either server or client\n");
                     break; // Break out of loop to move on to close server and client
                 }
             }
@@ -281,7 +281,7 @@ int relay(int receiveFD, int sendFD, void* buffer, int bufferSize)
     ssize_t bytesSent = send(sendFD, buffer, bytesRead, 0);
     if (bytesSent < 1) // Returns -1 on error
     {
-        printf("Unable to send bytes");
+        printf("Unable to send bytes\n");
         return -1;
     }
 
