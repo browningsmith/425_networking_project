@@ -64,13 +64,12 @@ int main(int argc, char** argv)
     socklen_t clientAddressLength;
     void* buffer = NULL;
 
-    // Get lport, sip and sport from command line
+    // Get port number to listen on from command line
     if (argc < 2)
     {
         printf(
-            "ERROR: You must enter the port to listen for new connections on,\n"
-            "       as well as the address and port number to forward data to\n"
-            "Usage: ./cproxy lport sip sport\n"
+            "ERROR: No port specified!\n"
+            "Usage: ./sproxy portNumber\n"
         );
         return -1;
     }
@@ -80,7 +79,7 @@ int main(int argc, char** argv)
     listenSocketFD = socket(AF_INET, SOCK_STREAM, 0);
     if (listenSocketFD < 0) // socket returns -1 on error
     {
-        perror("cproxy unable to create listen socket");
+        perror("sproxy unable to create listen socket");
         return -1;
     }
 
@@ -92,14 +91,14 @@ int main(int argc, char** argv)
     // bind returns -1 on error
     if (bind(listenSocketFD, (struct sockaddr*) &listenAddress, sizeof(listenAddress)) < 0)
     {
-        perror("cproxy unable to bind listen socket to port");
+        perror("sproxy unable to bind listen socket to port");
         return -1;
     }
 
     // set to listen to incoming connections
     if (listen(listenSocketFD, 5) < 0) // listen returns -1 on error
     {
-        perror("cproxy unable to listen to port");
+        perror("sproxy unable to listen to port");
         return -1;
     }
 
@@ -120,55 +119,55 @@ int main(int argc, char** argv)
     while (1)
     {
         // accept a new client
-        printf("cproxy waiting for new connection...\n");
+        printf("sproxy waiting for new connection...\n");
         clientSocketFD = accept(listenSocketFD, &clientAddress, &clientAddressLength);
         if (clientSocketFD < -1) // accept returns -1 on error
         {
-            perror("cproxy unable to receive connection from client");
+            perror("sproxy unable to receive connection from client");
         }
         else
         {
-            printf("cproxy accepted new connection from client!\n");
+            printf("sproxy accepted new connection from client!\n");
         }
 
         // Create server socket
         serverSocketFD = socket(AF_INET, SOCK_STREAM, 0);
         if (serverSocketFD < 0) // socket returns -1 on error
         {
-            perror("cproxy unable to create server socket");
+            perror("sproxy unable to create server socket");
 
             // Close client socket, so it doesn't stay open
             if (close(clientSocketFD)) // close returns -1 on error
             {
-                perror("cproxy unable to properly close client socket");
+                perror("sproxy unable to properly close client socket");
             }
             else
             {
-                printf("cproxy closed connection to client\n");
+                printf("sproxy closed connection to client\n");
             }
 
             continue; // move to accept new connection
         }
 
         // Connect to server
-        printf("cproxy attempting to connect to server...\n");
+        printf("sproxy attempting to connect to server...\n");
         if (connect(serverSocketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) != 0)
         {
-            perror("cproxy unable to connect to server");
+            perror("sproxy unable to connect to server");
 
             // Close client socket, so it doesn't stay open
             if (close(clientSocketFD)) // close returns -1 on error
             {
-                perror("cproxy unable to properly close client socket");
+                perror("sproxy unable to properly close client socket");
             }
             else
             {
-                printf("cproxy closed connection to client\n");
+                printf("sproxy closed connection to client\n");
             }
 
             continue; // move to accept new connection
         }
-        printf("cproxy successfully connected to server!\n");
+        printf("sproxy successfully connected to server!\n");
 
         // Use select for data to be ready on both serverSocket and clientSocket
         while (1)
@@ -189,26 +188,26 @@ int main(int argc, char** argv)
                 ) < 0 // select returns -1 on error
             )
             {
-                perror("cproxy unable to use select to wait for input");
+                perror("sproxy unable to use select to wait for input");
 
                 // Close server socket, so it doesn't stay open
                 if (close(serverSocketFD)) // close returns -1 on error
                 {
-                    perror("cproxy unable to properly close server socket");
+                    perror("sproxy unable to properly close server socket");
                 }
                 else
                 {
-                    printf("cproxy closed connection to server\n");
+                    printf("sproxy closed connection to server\n");
                 }
 
                 // Close client socket, so it doesn't stay open
                 if (close(clientSocketFD)) // close returns -1 on error
                 {
-                    perror("cproxy unable to properly close client socket");
+                    perror("sproxy unable to properly close client socket");
                 }
                 else
                 {
-                    printf("cproxy closed connection to client\n");
+                    printf("sproxy closed connection to client\n");
                 }
 
                 return -1;
@@ -238,28 +237,28 @@ int main(int argc, char** argv)
         // Close server socket
         if (close(serverSocketFD)) // close returns -1 on error
         {
-            perror("cproxy unable to properly close server socket");
+            perror("sproxy unable to properly close server socket");
         }
         else
         {
-            printf("cproxy closed connection to server\n");
+            printf("sproxy closed connection to server\n");
         }
 
         // Close client socket
         if (close(clientSocketFD)) // close returns -1 on error
         {
-            perror("cproxy unable to properly close client socket");
+            perror("sproxy unable to properly close client socket");
         }
         else
         {
-            printf("cproxy closed connection to client\n");
+            printf("sproxy closed connection to client\n");
         }
     }
 
     // Close listen socket
     if (close(listenSocketFD)) // close returns -1 on error
     {
-        perror("cproxy unable to close listen socket");
+        perror("sproxy unable to close listen socket");
     }
 
     // free buffer
