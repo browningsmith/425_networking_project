@@ -58,7 +58,7 @@ int main(int argc, char** argv)
 {
     int listenSocketFD, clientSocketFD, serverSocketFD; // Socket file descriptor
     fd_set socketSet;
-    int listenPort;
+    in_port_t listenPort;
     struct sockaddr_in listenAddress, serverAddress;
     struct sockaddr clientAddress;
     socklen_t clientAddressLength;
@@ -218,7 +218,7 @@ int main(int argc, char** argv)
             {   
                 if (relay(serverSocketFD, clientSocketFD, buffer, BUFFER_LEN) < 0) // relay returns -1 on error
                 {
-                    printf("Connection closed by either server or client\n");
+                    printf("Unable to send data from server to client\nConnection closed by either server or client\n");
                     break; // Break out of loop to move on to close server and client
                 }
             }
@@ -228,7 +228,7 @@ int main(int argc, char** argv)
             {   
                 if (relay(clientSocketFD, serverSocketFD, buffer, BUFFER_LEN) < 0) // relay returns -1 on error
                 {
-                    printf("Connection closed by either server or client\n");
+                    printf("Unable to send data from client to server\nConnection closed by either server or client\n");
                     break; // Break out of loop to move on to close server and client
                 }
             }
