@@ -3,14 +3,17 @@ Authors:    Keith Smith, Sean Callahan
 Assignment: Mobile TCP Proxy, Milestone 2
 File:       sproxy.c
 Class:      425
-Due Date:   03/11/2021
+Due Date:   03/15/2021
 
-TODO Update Note
-Note:       This is the Server part of the program where the port number is
-            given as command line argument.. As far as the design goes the payload is
-            constructed as a string array without a termination character and the first
-            4 bytes is the length of the broadcast string. The size is read first then
-            printed to the console followed by the message in the payload
+Note:       This is the server part of the program. The program takes 1
+            command line argument: lport (the port to listen for an
+            incoming connection). When cproxy receives a TCP connection on
+            it's listening socket, it establishes another TCP connection
+            with the server socket, at localhost and port 23, the VMs telnet daemon.
+            The program uses select() to wait for
+            data on either the client side or server side, or both, and
+            sends data from the client to the server, or the server to
+            the client, as it comes in.
 */
 #include <arpa/inet.h>
 #include <netinet/in.h>
