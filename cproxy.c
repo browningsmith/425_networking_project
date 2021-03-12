@@ -55,7 +55,7 @@ int main(int argc, char** argv)
 {
     int listenSocketFD, clientSocketFD, serverSocketFD; // Socket file descriptor
     fd_set socketSet;
-    int listenPort, serverPort;
+    in_port_t listenPort, serverPort;
     struct sockaddr_in listenAddress, serverAddress;
     struct sockaddr clientAddress;
     socklen_t clientAddressLength;
