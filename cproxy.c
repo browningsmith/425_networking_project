@@ -75,7 +75,13 @@ int main(int argc, char** argv)
     struct sockaddr clientAddress;
     socklen_t clientAddressLength;
     void* buffer = NULL;
-    int rand
+    
+    // defining the heartbeat packet with a session ID
+    int sessionID = rand(0);
+    struct packet heartbeatPacket;
+    heartbeatPacket.type = (uint32_t) 0;
+    heartbeatPacket.length = (uint32_t) sizeof(int);
+    heartbeatPacket.payload = sessionID;
 
     // Get listenPort and serverPort from command line
     if (argc < 4)
