@@ -66,6 +66,19 @@ int max(int a, int b);
  *************************************/
 int relay(int receiveFD, int sendFD, void* buffer, int bufferSize);
 
+/*************************************
+ * isValidAddress
+ * 
+ * Arguments: char oldAddress[], char newAddress[]
+ * Returns: int
+ * 
+ * compares a new address with the old to see if the
+ * new address is a valid one
+ * 
+ * Returns 0 on true, -1 on error, >0 on false
+ *************************************/
+int isValidAddress(char oldAddress[], char newAddress[]);
+
 int main(int argc, char** argv)
 {
     int listenSocketFD, clientSocketFD, serverSocketFD; // Socket file descriptor
@@ -310,4 +323,33 @@ int max(int a, int b)
     return b;
 }
 
+int isValidAddress(char *oldClientAddress, char *newClientAddress, char *serverVMAddress)
+{
+    char *lastNum;
+    int i = 0;
+    int periods = 0;
+    
+    // if any of the pointers are null
+    if(oldClientAddress == NULL || newClientAddress == NULL || serverVMAddress == NULL) return 1;
 
+    // check that the first 3 numbers remain the same
+    while(periods<3){
+        if(oldClientAddress[i] != newClientAddress[i]) return 2;
+        if(newClientAddress[i] == '.') periods++;
+        i++;
+    }
+
+    // grabbing the last number based if there is a slash or not
+    lastNum = (strchr(newClientAddress, '/') == NULL)? strrchr(newClientAddress, '.') : strrchr(newClientAddress, '/');
+    lastNum++;
+    
+    // checking that the last num is unique
+    if(strstr(oldClientAddress, lastNum) != NULL) return 3;
+    if(strstr(serverVMAddress, lastNum) != NULL) return 4;
+    
+    // checking that the number is in range
+    if(atoi(lastNum)>254 || atoi(lastNum)<1) return 5;
+
+    // else new address is valid
+    return 0;
+}
