@@ -31,15 +31,16 @@ Note:       This is the server part of the program. The program takes 1
 #define BUFFER_LEN 1024
 #define LOCALHOST "127.0.0.1"
 #define TELNET_PORT 23
+#define PACKET_SIZE 2*sizeof(uint32_t)+BUFFER_LEN
 
 struct packet {
     // header
     uint32_t type;      // 0 = heartbeat, !0 = data
     uint32_t length;    // length of payload
-    // payload stored as an array (will have to malloc to initiate?)
-    char payload[BUFFER_LEN];   // either buffer for telnet or session ID
-}
-#define PACKET_SIZE sizeof(packet)
+    // payload
+    void* payload;      // either int sessionID or buffer
+};
+
 /*************************************
  * max
  * 

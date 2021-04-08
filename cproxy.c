@@ -30,14 +30,16 @@ Note:       This is the client part of the program. The program takes 3
 #include <unistd.h>
 
 #define BUFFER_LEN 1024
+#define PACKET_SIZE 2*sizeof(uint32_t)+BUFFER_LEN
+
 struct packet {
     // header
     uint32_t type;      // 0 = heartbeat, !0 = data
     uint32_t length;    // length of payload
-    // payload stored as an array (will have to malloc to initiate?)
-    char payload[BUFFER_LEN];   // either buffer for telnet or session ID
-}
-#define PACKET_SIZE sizeof(packet)
+    // payload
+    void* payload;      // either int sessionID or buffer
+};
+
 
 /*************************************
  * max
@@ -73,6 +75,7 @@ int main(int argc, char** argv)
     struct sockaddr clientAddress;
     socklen_t clientAddressLength;
     void* buffer = NULL;
+    int rand
 
     // Get listenPort and serverPort from command line
     if (argc < 4)
