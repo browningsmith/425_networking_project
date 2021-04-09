@@ -323,15 +323,19 @@ int relay(int receiveFD, int sendFD, void* buffer, int bufferSize)
         newSessionID = *((int*) buffer);
         if(sessionID == 0) // if this is the first heartbeat message for the server
         {
+            printf("first heartbeat read\n");
             sessionID = newSessionID;
         } else if (sessionID != newSessionID;) // if this is a different session (reset Daemon???)
         {
+            printf("sessionID changed\n");
             // TODO something something Daemon
         }
         timeLastMessageSent = getTimeOfDay(0); // setting the time of heartbeat recieved
+        printf("heartbeat read at %d seconds\n", timeLastMessageSent.tv_sec);
     } else // if the message is a data one
     {
          // Write from buffer to sendFD
+        printf("data read\n");
         ssize_t bytesSent = send(sendFD, buffer, bytesRead, 0);
         if (bytesSent < 1) // Returns -1 on error
         {
