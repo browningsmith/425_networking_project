@@ -1,9 +1,9 @@
 /*
 Authors:    Keith Smith, Sean Callahan
-Assignment: Mobile TCP Proxy, Milestone 2
+Assignment: Mobile TCP Proxy, Milestone 3
 File:       sproxy.c
 Class:      425
-Due Date:   03/15/2021
+Due Date:   04/12/2021
 
 Note:       This is the server part of the program. The program takes 1
             command line argument: lport (the port to listen for an
@@ -32,6 +32,10 @@ Note:       This is the server part of the program. The program takes 1
 #define LOCALHOST "127.0.0.1"
 #define TELNET_PORT 23
 #define PACKET_SIZE 2*sizeof(uint32_t)+BUFFER_LEN
+
+// globals
+struct timeval timeLastMessageSent;
+int sessionID = 0;
 
 struct packet {
     // header
@@ -81,6 +85,7 @@ int isValidAddress(char oldAddress[], char newAddress[]);
 
 int main(int argc, char** argv)
 {
+    // SETUP //////////////////////////////////////////////////////////////////////////////////////
     int listenSocketFD, clientSocketFD, serverSocketFD; // Socket file descriptor
     fd_set socketSet;
     in_port_t listenPort;
@@ -140,7 +145,7 @@ int main(int argc, char** argv)
     serverAddress.sin_addr.s_addr = inet_addr(LOCALHOST);
     serverAddress.sin_port = htons(TELNET_PORT);
 
-    // Infinite loop, continue to listen for new connections
+    // Infinite loop, continue to listen for new connections //////////////////////////////////////
     while (1)
     {
         // accept a new client
@@ -194,7 +199,7 @@ int main(int argc, char** argv)
         }
         printf("sproxy successfully connected to server!\n");
 
-        // Use select for data to be ready on both serverSocket and clientSocket
+        // Use select for data to be ready on both serverSocket and clientSocket //////////////////
         while (1)
         {   
             // Reset socketSet
@@ -294,22 +299,46 @@ int main(int argc, char** argv)
 
 int relay(int receiveFD, int sendFD, void* buffer, int bufferSize)
 {
-    // Read from receiveFD into buffer
-    ssize_t bytesRead = recv(receiveFD, buffer, bufferSize, 0);
-    if (bytesRead < 1) // Returns 0 on closed connection, -1 on error
-    {
-        printf("Unable to receive bytes, either connection closed or error\n");
-        return -1;
-    }
+    uint32_t packetType;
+    uint32_t payloadLength;
+    int newSessionID;
 
-    // Write from buffer to sendFD
-    ssize_t bytesSent = send(sendFD, buffer, bytesRead, 0);
-    if (bytesSent < 1) // Returns -1 on error
-    {
-        printf("Unable to send bytes\n");
-        return -1;
-    }
+   // reading in the packet type
+    ssize_t bytesRead = recv(receiveFD, buffer, sizeof(uint32_t), 0);
+    if (bytesRead < 1) break;
+    packetType = *((uint32_t*) buffer);
 
+    // reading in the payload length
+    ssize_t bytesRead = recv(receiveFD, buffer, sizeof(uint32_t), 0);
+    if (bytesRead < 1) break;
+    payloadLength = *((uint32_t*) buffer);
+
+    // reading the payload
+    ssize_t bytesRead = recv(receiveFD, buffer, payloadLength, 0);
+    if (bytesRead < 1) break;
+
+    // acting on the message 
+    if(packetType == 0) // if the message is a heartbeat
+    {
+        newSessionID = *((int*) buffer);
+        if(sessionID == 0) // if this is the first heartbeat message for the server
+        {
+            sessionID = newSessionID;
+        } else if (sessionID != newSessionID;) // if this is a different session (reset Daemon???)
+        {
+            // TODO something something Daemon
+        }
+        timeLastMessageSent = getTimeOfDay(0); // setting the time of heartbeat recieved
+    } else // if the message is a data one
+    {
+         // Write from buffer to sendFD
+        ssize_t bytesSent = send(sendFD, buffer, bytesRead, 0);
+        if (bytesSent < 1) // Returns -1 on error
+        {
+            printf("Unable to send bytes\n");
+            return -1;
+        }
+    }
     return 0;
 }
 
