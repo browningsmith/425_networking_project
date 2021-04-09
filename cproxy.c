@@ -30,6 +30,16 @@ Note:       This is the client part of the program. The program takes 3
 #include <unistd.h>
 
 #define BUFFER_LEN 1024
+#define PACKET_SIZE 2*sizeof(uint32_t)+BUFFER_LEN
+
+struct packet {
+    // header
+    uint32_t type;      // 0 = heartbeat, !0 = data
+    uint32_t length;    // length of payload
+    // payload
+    void* payload;      // either int sessionID or buffer
+};
+
 
 /*************************************
  * max
@@ -65,6 +75,13 @@ int main(int argc, char** argv)
     struct sockaddr clientAddress;
     socklen_t clientAddressLength;
     void* buffer = NULL;
+    
+    // defining the heartbeat packet with a session ID
+    int sessionID = rand(0);
+    struct packet heartbeatPacket;
+    heartbeatPacket.type = (uint32_t) 0;
+    heartbeatPacket.length = (uint32_t) sizeof(int);
+    heartbeatPacket.payload = sessionID;
 
     // Get listenPort and serverPort from command line
     if (argc < 4)
