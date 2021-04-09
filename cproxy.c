@@ -16,6 +16,8 @@ Note:       This is the client part of the program. The program takes 3
             sends data from the client to the server, or the server to
             the client, as it comes in.
 */
+#define _DEFAULT_SOURCE // Needed to use timersub on Windows Subsystem for Linux
+
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -75,6 +77,10 @@ int main(int argc, char** argv)
     struct sockaddr clientAddress;
     socklen_t clientAddressLength;
     void* buffer = NULL;
+
+    // Booleans that keep track of which sockets are connected
+    int clientConnected = 0; // 0 false, !0 true
+    int serverConnected = 0; // 0 false, !0 true
     
     // defining the heartbeat packet with a session ID
     int sessionID = rand();
@@ -139,140 +145,159 @@ int main(int argc, char** argv)
     // Infinite loop, continue to listen for new connections
     while (1)
     {
-        // accept a new client
-        printf("cproxy waiting for new connection...\n");
-        clientSocketFD = accept(listenSocketFD, &clientAddress, &clientAddressLength);
-        if (clientSocketFD < -1) // accept returns -1 on error
+        if (!clientConnected)
         {
-            perror("cproxy unable to receive connection from client");
-        }
-        else
-        {
-            printf("cproxy accepted new connection from client!\n");
-        }
-
-        // Create server socket
-        serverSocketFD = socket(AF_INET, SOCK_STREAM, 0);
-        if (serverSocketFD < 0) // socket returns -1 on error
-        {
-            perror("cproxy unable to create server socket");
-
-            // Close client socket, so it doesn't stay open
-            if (close(clientSocketFD)) // close returns -1 on error
+            // accept a new client
+            printf("cproxy waiting for new connection...\n");
+            clientSocketFD = accept(listenSocketFD, &clientAddress, &clientAddressLength);
+            if (clientSocketFD < -1) // accept returns -1 on error
             {
-                perror("cproxy unable to properly close client socket");
+                perror("cproxy unable to receive connection from client");
+                continue; // Repeat loop to receive another client connection
             }
             else
             {
-                printf("cproxy closed connection to client\n");
+                clientConnected = 1;
+                // TODO: Generate new session ID
+                printf("cproxy accepted new connection from client!\n");
             }
-
-            continue; // move to accept new connection
         }
 
-        // Connect to server
-        printf("cproxy attempting to connect to server...\n");
-        if (connect(serverSocketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) != 0)
+        if (!serverConnected)
         {
-            perror("cproxy unable to connect to server");
-
-            // Close client socket, so it doesn't stay open
-            if (close(clientSocketFD)) // close returns -1 on error
+            // Attempt to re-establish connection
+            
+            // Create new server socket
+            serverSocketFD = socket(AF_INET, SOCK_STREAM, 0);
+            if (serverSocketFD < 0) // socket returns -1 on error
             {
-                perror("cproxy unable to properly close client socket");
+                perror("cproxy unable to create server socket");
+
+                continue; // Repeat loop to attempt a new connection
             }
-            else
+
+            // Attempt to connect to server
+            printf("cproxy attempting to connect to server...\n");
+            if (connect(serverSocketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) != 0)
             {
-                printf("cproxy closed connection to client\n");
+                perror("cproxy unable to connect to server");
+
+                continue; // Repeat loop to attempt a new connection
             }
 
-            continue; // move to accept new connection
-        }
-        printf("cproxy successfully connected to server!\n");
+            serverConnected = 1;
+            printf("cproxy successfully connected to server!\n");
 
-        // Use select for data to be ready on both serverSocket and clientSocket
-        while (1)
-        {   
-            // Reset socketSet
-            FD_ZERO(&socketSet); // zero out socketSet
-            FD_SET(serverSocketFD, &socketSet); // add server socket
-            FD_SET(clientSocketFD, &socketSet); // add client socket
+            // Create nextTimeout timeval, and set it to currentTime to ensure the first message sent is a heartbeat
+            struct timeval nextTimeout;
+            gettimeofday(&nextTimeout, NULL);
 
-            // Wait indefinitely for input to be available using select
-            if(
-                select(
+            // Use select for data to be ready on both serverSocket and clientSocket
+            while (1)
+            {   
+                // Reset socketSet
+                FD_ZERO(&socketSet); // zero out socketSet
+                FD_SET(serverSocketFD, &socketSet); // add server socket
+                FD_SET(clientSocketFD, &socketSet); // add client socket
+
+                // Calculate new timeout value
+                struct timeval currentTime;
+                gettimeofday(&currentTime, NULL);
+                struct timeval timeout;
+                timersub(&nextTimeout, &currentTime, &timeout);
+                if (timeout.tv_sec < 0) // If it came back negative, set to zero
+                {
+                    timeout.tv_sec = 0;
+                    timeout.tv_usec = 0;
+                }
+
+                // Wait at most one second for input to be available using select
+                int resultOfSelect = select(
                     max(serverSocketFD, clientSocketFD) + 1,
                     &socketSet,
                     NULL,
                     NULL,
-                    NULL
-                ) < 0 // select returns -1 on error
-            )
+                    &timeout
+                );
+                // If select timed out, send a heartbeat
+                if (resultOfSelect == 0)
+                {
+                    // Add a second to nextTimeout
+                    nextTimeout.tv_sec += 1;
+
+                    // Send heartbeat message
+                    printf("cproxy would have sent a heartbeat message now\n");
+                }
+                // If there was an error with select, this is non recoverable
+                else if (resultOfSelect < 0)
+                {
+                    perror("FATAL: cproxy unable to use select to wait for input");
+
+                    // Close server socket, so it doesn't stay open
+                    if (close(serverSocketFD)) // close returns -1 on error
+                    {
+                        perror("cproxy unable to properly close server socket");
+                    }
+                    else
+                    {
+                        printf("cproxy closed connection to server\n");
+                    }
+
+                    // Close client socket, so it doesn't stay open
+                    if (close(clientSocketFD)) // close returns -1 on error
+                    {
+                        perror("cproxy unable to properly close client socket");
+                    }
+                    else
+                    {
+                        printf("cproxy closed connection to client\n");
+                    }
+
+                    return -1;
+                }
+
+                // If input is ready on serverSocket, relay to clientSocket
+                if (FD_ISSET(serverSocketFD, &socketSet))
+                {   
+                    if (relay(serverSocketFD, clientSocketFD, buffer, BUFFER_LEN) < 0) // relay returns -1 on error
+                    {
+                        printf("Unable to send data from server to client\nConnection closed by either server or client\n");
+                        break; // Break out of loop to move on to close server and client
+                    }
+                }
+
+                // If input is ready on clientSocket, relay to serverSocket
+                if (FD_ISSET(clientSocketFD, &socketSet))
+                {   
+                    if (relay(clientSocketFD, serverSocketFD, buffer, BUFFER_LEN) < 0) // relay returns -1 on error
+                    {
+                        printf("Unable to send data from client to server\nConnection closed by either server or client\n");
+                        break; // Break out of loop to move on to close server and client
+                    }
+                }
+            }
+
+            // Close server socket
+            if (close(serverSocketFD)) // close returns -1 on error
             {
-                perror("cproxy unable to use select to wait for input");
-
-                // Close server socket, so it doesn't stay open
-                if (close(serverSocketFD)) // close returns -1 on error
-                {
-                    perror("cproxy unable to properly close server socket");
-                }
-                else
-                {
-                    printf("cproxy closed connection to server\n");
-                }
-
-                // Close client socket, so it doesn't stay open
-                if (close(clientSocketFD)) // close returns -1 on error
-                {
-                    perror("cproxy unable to properly close client socket");
-                }
-                else
-                {
-                    printf("cproxy closed connection to client\n");
-                }
-
-                return -1;
+                perror("cproxy unable to properly close server socket");
             }
-
-            // If input is ready on serverSocket, relay to clientSocket
-            if (FD_ISSET(serverSocketFD, &socketSet))
-            {   
-                if (relay(serverSocketFD, clientSocketFD, buffer, BUFFER_LEN) < 0) // relay returns -1 on error
-                {
-                    printf("Unable to send data from server to client\nConnection closed by either server or client\n");
-                    break; // Break out of loop to move on to close server and client
-                }
+            else
+            {
+                printf("cproxy closed connection to server\n");
             }
+            serverConnected = 0;
 
-            // If input is ready on clientSocket, relay to serverSocket
-            if (FD_ISSET(clientSocketFD, &socketSet))
-            {   
-                if (relay(clientSocketFD, serverSocketFD, buffer, BUFFER_LEN) < 0) // relay returns -1 on error
-                {
-                    printf("Unable to send data from client to server\nConnection closed by either server or client\n");
-                    break; // Break out of loop to move on to close server and client
-                }
+            // Close client socket
+            if (close(clientSocketFD)) // close returns -1 on error
+            {
+                perror("cproxy unable to properly close client socket");
             }
-        }
-
-        // Close server socket
-        if (close(serverSocketFD)) // close returns -1 on error
-        {
-            perror("cproxy unable to properly close server socket");
-        }
-        else
-        {
-            printf("cproxy closed connection to server\n");
-        }
-
-        // Close client socket
-        if (close(clientSocketFD)) // close returns -1 on error
-        {
-            perror("cproxy unable to properly close client socket");
-        }
-        else
-        {
-            printf("cproxy closed connection to client\n");
+            else
+            {
+                printf("cproxy closed connection to client\n");
+            }
+            clientConnected = 0;
         }
     }
 
