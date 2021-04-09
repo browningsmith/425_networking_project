@@ -200,7 +200,7 @@ int main(int argc, char** argv)
                 FD_SET(serverSocketFD, &socketSet); // add server socket
                 FD_SET(clientSocketFD, &socketSet); // add client socket
 
-                // Calculate new timeout value
+                // Calculate new timeout value (passing a returned timeout value from a previous select call does not work on all OSs)
                 struct timeval currentTime;
                 gettimeofday(&currentTime, NULL);
                 struct timeval timeout;
