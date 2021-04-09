@@ -77,11 +77,11 @@ int main(int argc, char** argv)
     void* buffer = NULL;
     
     // defining the heartbeat packet with a session ID
-    int sessionID = rand(0);
+    int sessionID = rand();
     struct packet heartbeatPacket;
     heartbeatPacket.type = (uint32_t) 0;
     heartbeatPacket.length = (uint32_t) sizeof(int);
-    heartbeatPacket.payload = sessionID;
+    heartbeatPacket.payload = (void*) sessionID;
 
     // Get listenPort and serverPort from command line
     if (argc < 4)

@@ -69,7 +69,8 @@ int relay(int receiveFD, int sendFD, void* buffer, int bufferSize);
 /*************************************
  * isValidAddress
  * 
- * Arguments: char oldAddress[], char newAddress[]
+ * Arguments: char* oldClientAddress, char* newClientAddress,
+ *            char* serverVMAddress
  * Returns: int
  * 
  * compares a new address with the old to see if the
@@ -77,7 +78,7 @@ int relay(int receiveFD, int sendFD, void* buffer, int bufferSize);
  * 
  * Returns 0 on true, -1 on error, >0 on false
  *************************************/
-int isValidAddress(char oldAddress[], char newAddress[]);
+int isValidAddress(char* oldClientAddress, char* newClientAddress, char* serverVMAddress);
 
 int main(int argc, char** argv)
 {
