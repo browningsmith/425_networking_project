@@ -35,6 +35,8 @@ Note:       This is the server part of the program. The program takes 1
 
 // globals
 struct timeval timeLastMessageSent;
+struct timeval newTime;
+struct timeval timeDif;
 int sessionID = 0;
 
 struct packet {
@@ -208,39 +210,54 @@ int main(int argc, char** argv)
             FD_SET(clientSocketFD, &socketSet); // add client socket
 
             // Wait indefinitely for input to be available using select
-            if(
-                select(
+            int resultOfSelect = select(
                     max(serverSocketFD, clientSocketFD) + 1,
                     &socketSet,
                     NULL,
                     NULL,
                     NULL
-                ) < 0 // select returns -1 on error
-            )
+                );
+            if(resultOfSelect < 0 )// select returns -1 on error
             {
-                perror("sproxy unable to use select to wait for input");
-
+                perror("cproxy unable to use select to wait for input");
                 // Close server socket, so it doesn't stay open
                 if (close(serverSocketFD)) // close returns -1 on error
                 {
-                    perror("sproxy unable to properly close server socket");
+                    perror("cproxy unable to properly close server socket");
                 }
                 else
                 {
-                    printf("sproxy closed connection to server\n");
+                    printf("cproxy closed connection to server\n");
                 }
-
                 // Close client socket, so it doesn't stay open
                 if (close(clientSocketFD)) // close returns -1 on error
                 {
-                    perror("sproxy unable to properly close client socket");
+                    perror("cproxy unable to properly close client socket");
                 }
                 else
                 {
-                    printf("sproxy closed connection to client\n");
+                    printf("cproxy closed connection to client\n");
                 }
 
                 return -1;
+            }
+            // TODO ask if we need timeout var in select for this to work
+            if(resultOfSelect == 0 )    // checks every second for lost heartbeat
+            {
+                getTimeOfDay(&newTime, NULL);
+                timersub(&newTime, &timeLastMessageSent, &timeDif); // getting the time difference
+                if(timeDif.tv_sec >= 3) // if the time difference is 3 or greater
+                {
+                    //TODO: close the sockets between cproxy and sproxy (is this right???)
+                    // Close listen socket
+                    //if (close(listenSocketFD)) // close returns -1 on error
+                    //{
+                     //   perror("sproxy unable to close listen socket");
+                    //}
+                    // free buffer
+                    //free(buffer);
+                    //return 0;
+                }
             }
 
             // If input is ready on serverSocket, relay to clientSocket
@@ -330,7 +347,7 @@ int relay(int receiveFD, int sendFD, void* buffer, int bufferSize)
             printf("sessionID changed\n");
             // TODO something something Daemon
         }
-        timeLastMessageSent = getTimeOfDay(0); // setting the time of heartbeat recieved
+        getTimeOfDay(&timeLastMessageSent, NULL); // setting the time of heartbeat recieved
         printf("heartbeat read at %d seconds\n", timeLastMessageSent.tv_sec);
     } else // if the message is a data one
     {
