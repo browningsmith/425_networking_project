@@ -1,9 +1,9 @@
 /*
 Authors:    Keith Smith, Sean Callahan
-Assignment: Mobile TCP Proxy, Milestone 2
+Assignment: Mobile TCP Proxy, Milestone 3
 File:       sproxy.c
 Class:      425
-Due Date:   03/15/2021
+Due Date:   04/12/2021
 
 Note:       This is the server part of the program. The program takes 1
             command line argument: lport (the port to listen for an
@@ -15,6 +15,8 @@ Note:       This is the server part of the program. The program takes 1
             sends data from the client to the server, or the server to
             the client, as it comes in.
 */
+#define _DEFAULT_SOURCE // Needed to use timersub on Windows Subsystem for Linux
+
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -22,7 +24,6 @@ Note:       This is the server part of the program. The program takes 1
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -32,6 +33,12 @@ Note:       This is the server part of the program. The program takes 1
 #define LOCALHOST "127.0.0.1"
 #define TELNET_PORT 23
 #define PACKET_SIZE 2*sizeof(uint32_t)+BUFFER_LEN
+
+// globals
+struct timeval timeLastMessageSent;
+struct timeval newTime;
+struct timeval timeDif;
+int sessionID = 0;
 
 struct packet {
     // header
@@ -82,6 +89,7 @@ int isValidAddress(char* oldClientAddress, char* newClientAddress, char* serverV
 
 int main(int argc, char** argv)
 {
+    // SETUP //////////////////////////////////////////////////////////////////////////////////////
     int listenSocketFD, clientSocketFD, serverSocketFD; // Socket file descriptor
     fd_set socketSet;
     in_port_t listenPort;
@@ -141,7 +149,7 @@ int main(int argc, char** argv)
     serverAddress.sin_addr.s_addr = inet_addr(LOCALHOST);
     serverAddress.sin_port = htons(TELNET_PORT);
 
-    // Infinite loop, continue to listen for new connections
+    // Infinite loop, continue to listen for new connections //////////////////////////////////////
     while (1)
     {
         // accept a new client
@@ -195,7 +203,7 @@ int main(int argc, char** argv)
         }
         printf("sproxy successfully connected to server!\n");
 
-        // Use select for data to be ready on both serverSocket and clientSocket
+        // Use select for data to be ready on both serverSocket and clientSocket //////////////////
         while (1)
         {   
             // Reset socketSet
@@ -204,39 +212,54 @@ int main(int argc, char** argv)
             FD_SET(clientSocketFD, &socketSet); // add client socket
 
             // Wait indefinitely for input to be available using select
-            if(
-                select(
+            int resultOfSelect = select(
                     max(serverSocketFD, clientSocketFD) + 1,
                     &socketSet,
                     NULL,
                     NULL,
                     NULL
-                ) < 0 // select returns -1 on error
-            )
+                );
+            if(resultOfSelect < 0 )// select returns -1 on error
             {
-                perror("sproxy unable to use select to wait for input");
-
+                perror("cproxy unable to use select to wait for input");
                 // Close server socket, so it doesn't stay open
                 if (close(serverSocketFD)) // close returns -1 on error
                 {
-                    perror("sproxy unable to properly close server socket");
+                    perror("cproxy unable to properly close server socket");
                 }
                 else
                 {
-                    printf("sproxy closed connection to server\n");
+                    printf("cproxy closed connection to server\n");
                 }
-
                 // Close client socket, so it doesn't stay open
                 if (close(clientSocketFD)) // close returns -1 on error
                 {
-                    perror("sproxy unable to properly close client socket");
+                    perror("cproxy unable to properly close client socket");
                 }
                 else
                 {
-                    printf("sproxy closed connection to client\n");
+                    printf("cproxy closed connection to client\n");
                 }
 
                 return -1;
+            }
+            // TODO ask if we need timeout var in select for this to work
+            if(resultOfSelect == 0 )    // checks every second for lost heartbeat
+            {
+                gettimeofday(&newTime, NULL);
+                timersub(&newTime, &timeLastMessageSent, &timeDif); // getting the time difference
+                if(timeDif.tv_sec >= 3) // if the time difference is 3 or greater
+                {
+                    //TODO: close the sockets between cproxy and sproxy (is this right???)
+                    // Close listen socket
+                    //if (close(listenSocketFD)) // close returns -1 on error
+                    //{
+                     //   perror("sproxy unable to close listen socket");
+                    //}
+                    // free buffer
+                    //free(buffer);
+                    //return 0;
+                }
             }
 
             // If input is ready on serverSocket, relay to clientSocket
@@ -295,22 +318,50 @@ int main(int argc, char** argv)
 
 int relay(int receiveFD, int sendFD, void* buffer, int bufferSize)
 {
-    // Read from receiveFD into buffer
-    ssize_t bytesRead = recv(receiveFD, buffer, bufferSize, 0);
-    if (bytesRead < 1) // Returns 0 on closed connection, -1 on error
-    {
-        printf("Unable to receive bytes, either connection closed or error\n");
-        return -1;
-    }
+    uint32_t packetType;
+    uint32_t payloadLength;
+    int newSessionID;
 
-    // Write from buffer to sendFD
-    ssize_t bytesSent = send(sendFD, buffer, bytesRead, 0);
-    if (bytesSent < 1) // Returns -1 on error
-    {
-        printf("Unable to send bytes\n");
-        return -1;
-    }
+   // reading in the packet type
+    ssize_t bytesRead = recv(receiveFD, buffer, sizeof(uint32_t), 0);
+    if (bytesRead < 1) return bytesRead;
+    packetType = *((uint32_t*) buffer);
 
+    // reading in the payload length
+    bytesRead = recv(receiveFD, buffer, sizeof(uint32_t), 0);
+    if (bytesRead < 1) return bytesRead;
+    payloadLength = *((uint32_t*) buffer);
+
+    // reading the payload
+    bytesRead = recv(receiveFD, buffer, payloadLength, 0);
+    if (bytesRead < 1) return bytesRead;
+
+    // acting on the message 
+    if(packetType == 0) // if the message is a heartbeat
+    {
+        newSessionID = *((int*) buffer);
+        if(sessionID == 0) // if this is the first heartbeat message for the server
+        {
+            printf("first heartbeat read\n");
+            sessionID = newSessionID;
+        } else if (sessionID != newSessionID) // if this is a different session (reset Daemon???)
+        {
+            printf("sessionID changed\n");
+            // TODO something something Daemon
+        }
+        gettimeofday(&timeLastMessageSent, NULL); // setting the time of heartbeat recieved
+        printf("heartbeat read at %li seconds\n", timeLastMessageSent.tv_sec);
+    } else // if the message is a data one
+    {
+         // Write from buffer to sendFD
+        printf("data read\n");
+        ssize_t bytesSent = send(sendFD, buffer, bytesRead, 0);
+        if (bytesSent < 1) // Returns -1 on error
+        {
+            printf("Unable to send bytes\n");
+            return -1;
+        }
+    }
     return 0;
 }
 

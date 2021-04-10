@@ -1,9 +1,9 @@
 /*
 Authors:    Keith Smith, Sean Callahan
-Assignment: Mobile TCP Proxy, Milestone 2
+Assignment: Mobile TCP Proxy, Milestone 3
 file:       cproxy.c
 Class:      425
-Due Date:   03/15/2021
+Due Date:   04/12/2021
 
 Note:       This is the client part of the program. The program takes 3
             command line arguments: lport (the port to listen for an
