@@ -54,6 +54,8 @@ struct timeval timeLastMessageSent;
 struct timeval newTime;
 struct timeval timeDif;
 int sessionID = 0;
+int serverConnectionAttempts = 0;
+int clientConnectionAttempts = 0;
 
 /*************************************
  * max
@@ -227,6 +229,12 @@ int main(int argc, char** argv)
         if (clientConnected == 0)
         {
             printf("client is not connected. Connecting...\n");
+            clientConnectionAttempts++;
+            if (clientConnectionAttempts >= 10)
+            {
+                printf("Too many connection attempts\n");
+                return -1;
+            }
             
             // accept a new client
             printf("sproxy waiting for new connection...\n");
@@ -249,6 +257,13 @@ int main(int argc, char** argv)
         if (!serverConnected)
         {
             printf("server is not connected. Connecting...\n");
+
+            serverConnectionAttempts++;
+            if (serverConnectionAttempts >= 10)
+            {
+                printf("Too many connection attempts\n");
+                return -1;
+            }
             
             // Create server socket
             serverSocketFD = socket(AF_INET, SOCK_STREAM, 0);
