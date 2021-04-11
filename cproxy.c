@@ -217,12 +217,14 @@ int main(int argc, char** argv)
     // Infinite loop, continue to listen for new connections
     while (1)
     {
-        if (!clientConnected)
+        if (clientConnected == 0)
         {
+            printf("client is not connected. Connecting...\n");
+            
             // accept a new client
             printf("cproxy waiting for new connection...\n");
             clientSocketFD = accept(listenSocketFD, &clientAddress, &clientAddressLength);
-            if (clientSocketFD <= -1) // accept returns -1 on error
+            if (clientSocketFD < 0) // accept returns -1 on error
             {
                 perror("cproxy unable to receive connection from client");
                 continue; // Repeat loop to receive another client connection
@@ -235,9 +237,10 @@ int main(int argc, char** argv)
             }
         }
 
-        if (!serverConnected)
+        if (serverConnected == 0)
         {
             // Attempt to re-establish connection
+            printf("server is not connected. Connecting...\n");
             
             // Create new server socket
             serverSocketFD = socket(AF_INET, SOCK_STREAM, 0);
@@ -261,8 +264,10 @@ int main(int argc, char** argv)
             printf("cproxy successfully connected to server!\n");
         }
 
-        if (serverConnected && clientConnected)
+        if ((serverConnected != 0) && (clientConnected != 0))
         {
+            printf("Client and Server are both connected\n");
+            
             // Reset segmentExpected to PACKET_TYPE and bytesExpected to sizeof(uint32_t)
             segmentExpected = PACKET_TYPE;
             bytesExpected = sizeof(uint32_t);
