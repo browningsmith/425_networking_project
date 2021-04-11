@@ -246,16 +246,36 @@ int main(int argc, char** argv)
             serverSocketFD = socket(AF_INET, SOCK_STREAM, 0);
             if (serverSocketFD < 0) // socket returns -1 on error
             {
-                perror("cproxy unable to create server socket");
+                perror("cproxy unable to create server socket. Trying again in one second");
+
+		struct timeval oneSec = {
+
+			.tv_sec = 1,
+			.tv_usec = 0
+		};
+		select(0, NULL, NULL, NULL, &oneSec);
 
                 continue; // Repeat loop to attempt a new connection
             }
 
             // Attempt to connect to server
-            printf("cproxy attempting to connect to server...\n");
+            printf("cproxy attempting to connect to %s %i\n", argv[2], serverPort);
             if (connect(serverSocketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) != 0)
             {
-                perror("cproxy unable to connect to server");
+                perror("cproxy unable to connect to server. Trying again in one second");
+
+		// close server socket to avoid TOO MANY OPEN FILES error
+		if (close(serverSocketFD) < 0)
+		{
+			perror("cproxy unable to properly close server socket");
+		}
+
+		struct timeval oneSec = {
+
+			.tv_sec = 1,
+			.tv_usec = 0
+		};
+		select(0, NULL, NULL, NULL, &oneSec);
 
                 continue; // Repeat loop to attempt a new connection
             }

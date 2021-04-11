@@ -54,8 +54,6 @@ struct timeval timeLastMessageReceived;
 struct timeval newTime;
 struct timeval timeDif;
 int sessionID = 0;
-int serverConnectionAttempts = 0;
-int clientConnectionAttempts = 0;
 
 /*************************************
  * max
@@ -229,19 +227,13 @@ int main(int argc, char** argv)
         if (clientConnected == 0)
         {
             printf("client is not connected. Connecting...\n");
-            clientConnectionAttempts++;
-            if (clientConnectionAttempts >= 10)
-            {
-                printf("Too many connection attempts\n");
-                return -1;
-            }
             
             // accept a new client
             printf("sproxy waiting for new connection...\n");
             clientSocketFD = accept(listenSocketFD, &clientAddress, &clientAddressLength);
             if (clientSocketFD < -1) // accept returns -1 on error
             {
-                perror("sproxy unable to receive connection from client");
+                perror("sproxy unable to receive connection from client.");
                 continue; // Repeat loop to receive another client connection
             }
             else
@@ -257,27 +249,43 @@ int main(int argc, char** argv)
         if (!serverConnected)
         {
             printf("server is not connected. Connecting...\n");
-
-            serverConnectionAttempts++;
-            if (serverConnectionAttempts >= 10)
-            {
-                printf("Too many connection attempts\n");
-                return -1;
-            }
             
             // Create server socket
             serverSocketFD = socket(AF_INET, SOCK_STREAM, 0);
             if (serverSocketFD < 0) // socket returns -1 on error
             {
-                perror("sproxy unable to create server socket");
+                perror("sproxy unable to create server socket. Trying again in one second");
+
+		struct timeval oneSec = {
+
+			.tv_sec = 1,
+			.tv_usec = 0
+		};
+		select(0, NULL, NULL, NULL, &oneSec);
+
                 continue; // move to attempt to reconnect to telnet daemon
             }
 
             // Connect to server
-            printf("sproxy attempting to connect to server...\n");
+            printf("sproxy attempting to connect to %s %i...\n", LOCALHOST, TELNET_PORT);
             if (connect(serverSocketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) != 0)
             {
-                perror("sproxy unable to connect to telnet daemon");
+                perror("sproxy unable to connect to telnet daemon. Trying again in one second");
+
+		// Close server socket so we don't have a TOO MANY OPEN FILES error
+		if (close(serverSocketFD) < 0)
+		{
+			perror("sproxy unable to properly close server socket");
+		}
+
+		struct timeval oneSec = {
+
+			.tv_sec = 1,
+			.tv_usec = 0
+		};
+
+		select(0, NULL, NULL, NULL, &oneSec);
+
                 continue; // move to attempt to reconnect to telnet daemon
             }
 
