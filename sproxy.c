@@ -231,7 +231,7 @@ int main(int argc, char** argv)
             // accept a new client
             printf("sproxy waiting for new connection...\n");
             clientSocketFD = accept(listenSocketFD, &clientAddress, &clientAddressLength);
-            if (clientSocketFD < -1) // accept returns -1 on error
+            if (clientSocketFD < 0) // accept returns -1 on error
             {
                 perror("sproxy unable to receive connection from client.");
                 continue; // Repeat loop to receive another client connection
@@ -256,35 +256,35 @@ int main(int argc, char** argv)
             {
                 perror("sproxy unable to create server socket. Trying again in one second");
 
-		struct timeval oneSec = {
+                struct timeval oneSec = {
 
-			.tv_sec = 1,
-			.tv_usec = 0
-		};
-		select(0, NULL, NULL, NULL, &oneSec);
+                    .tv_sec = 1,
+                    .tv_usec = 0
+                };
+                select(0, NULL, NULL, NULL, &oneSec);
 
                 continue; // move to attempt to reconnect to telnet daemon
             }
 
             // Connect to server
-            printf("sproxy attempting to connect to %s %i...\n", LOCALHOST, TELNET_PORT);
-            if (connect(serverSocketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) != 0)
+            printf("sproxy attempting to connect to %s %i...\n", LOCALHOST, htons(serverAddress.sin_port));
+            if (connect(serverSocketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0)
             {
                 perror("sproxy unable to connect to telnet daemon. Trying again in one second");
 
-		// Close server socket so we don't have a TOO MANY OPEN FILES error
-		if (close(serverSocketFD) < 0)
-		{
-			perror("sproxy unable to properly close server socket");
-		}
+                // Close server socket so we don't have a TOO MANY OPEN FILES error
+                if (close(serverSocketFD) < 0)
+                {
+                    perror("sproxy unable to properly close server socket");
+                }
 
-		struct timeval oneSec = {
+                struct timeval oneSec = {
 
-			.tv_sec = 1,
-			.tv_usec = 0
-		};
+                    .tv_sec = 1,
+                    .tv_usec = 0
+                };
 
-		select(0, NULL, NULL, NULL, &oneSec);
+                select(0, NULL, NULL, NULL, &oneSec);
 
                 continue; // move to attempt to reconnect to telnet daemon
             }

@@ -248,34 +248,34 @@ int main(int argc, char** argv)
             {
                 perror("cproxy unable to create server socket. Trying again in one second");
 
-		struct timeval oneSec = {
+                struct timeval oneSec = {
 
-			.tv_sec = 1,
-			.tv_usec = 0
-		};
-		select(0, NULL, NULL, NULL, &oneSec);
+                    .tv_sec = 1,
+                    .tv_usec = 0
+                };
+                select(0, NULL, NULL, NULL, &oneSec);
 
                 continue; // Repeat loop to attempt a new connection
             }
 
             // Attempt to connect to server
-            printf("cproxy attempting to connect to %s %i\n", argv[2], serverPort);
-            if (connect(serverSocketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) != 0)
+            printf("cproxy attempting to connect to %s %i\n", argv[2], htons(serverAddress.sin_port));
+            if (connect(serverSocketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0)
             {
                 perror("cproxy unable to connect to server. Trying again in one second");
 
-		// close server socket to avoid TOO MANY OPEN FILES error
-		if (close(serverSocketFD) < 0)
-		{
-			perror("cproxy unable to properly close server socket");
-		}
+            // close server socket to avoid TOO MANY OPEN FILES error
+            if (close(serverSocketFD) < 0)
+            {
+                perror("cproxy unable to properly close server socket");
+            }
 
-		struct timeval oneSec = {
+            struct timeval oneSec = {
 
-			.tv_sec = 1,
-			.tv_usec = 0
-		};
-		select(0, NULL, NULL, NULL, &oneSec);
+                .tv_sec = 1,
+                .tv_usec = 0
+            };
+		    select(0, NULL, NULL, NULL, &oneSec);
 
                 continue; // Repeat loop to attempt a new connection
             }
