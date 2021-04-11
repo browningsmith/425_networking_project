@@ -36,10 +36,8 @@ Note:       This is the client part of the program. The program takes 3
 typedef enum {
 
     PACKET_TYPE,
-    DATA_LENGTH,
-    DATA_PAYLOAD,
-    HEARTBEAT_LENGTH,
-    HEARTBEAT_PAYLOAD,
+    LENGTH,
+    PAYLOAD,
 
 } segmentType;
 
@@ -50,7 +48,6 @@ struct packet {
     // payload
     void* payload;      // either int sessionID or buffer
 };
-
 
 /*************************************
  * max
@@ -74,6 +71,21 @@ int max(int a, int b);
  *****************************************/
 int generateID(int oldID);
 
+/******************************************
+ * compressPacket
+ * 
+ * Arguments: char* buffer, struct packet
+ * Returns: int
+ * 
+ * Takes the given packet and compresses all
+ * the data into a single buffer, which can
+ * then be sent later using send()
+ * 
+ * Returns the number of bytes now stored
+ * in buffer
+ *****************************************/
+int compressPacket(void* buffer, struct packet);
+
 /*************************************
  * relay
  * 
@@ -93,7 +105,7 @@ int main(int argc, char** argv)
 {
     int sessionID = 0;
     segmentType segmentExpected = PACKET_TYPE;
-    int bytesExpected = sizeof(uint32_t);
+    int bytesExpected = sizeof(uint32_t); // Size of packet.type
     int bytesRead = 0;
 
     // Booleans that keep track of which sockets are connected
@@ -107,6 +119,8 @@ int main(int argc, char** argv)
     struct sockaddr clientAddress;
     socklen_t clientAddressLength;
     void* sendBuffer = NULL;
+    void* receiveBuffer = NULL;
+    int receiveBufferIndex = 0;
 
     // Get listenPort and serverPort from command line
     if (argc < 4)
@@ -155,6 +169,14 @@ int main(int argc, char** argv)
     // Attempt to allocate space for sendBuffer
     sendBuffer = malloc(2*sizeof(uint32_t) + BUFFER_LEN);
     if (sendBuffer == NULL)
+    {
+        perror("Unable to allocate space for the sendBuffer");
+        return -1;
+    }
+
+    // Attempt to allocate space for receiveBuffer
+    receiveBuffer = malloc(BUFFER_LEN);
+    if (receiveBuffer == NULL)
     {
         perror("Unable to allocate space for the sendBuffer");
         return -1;
@@ -238,6 +260,10 @@ int main(int argc, char** argv)
             serverConnected = 1;
             printf("cproxy successfully connected to server!\n");
 
+            // Reset segmentExpected to PACKET_TYPE and bytesExpected to sizeof(uint32_t)
+            segmentExpected = PACKET_TYPE;
+            bytesExpected = sizeof(uint32_t);
+
             // Create nextTimeout timeval, and set it to currentTime to ensure the first message sent is a heartbeat
             struct timeval nextTimeout;
             gettimeofday(&nextTimeout, NULL);
@@ -275,8 +301,17 @@ int main(int argc, char** argv)
                     // Add a second to nextTimeout
                     nextTimeout.tv_sec += 1;
 
-                    // Send heartbeat message
-                    printf("cproxy would have sent a heartbeat message now\n");
+                    // Compress and send heartbeat packet
+                    int bytesToSend = compressPacket(sendBuffer, heartbeatPacket);
+                    int bytesSent = send(serverSocketFD, sendBuffer, bytesToSend, 0);
+
+                    // Report if there was an error (just for debugging, no need to exit)
+                    if (bytesSent < 0)
+                    {
+                        perror("Unable to send heartbeat message to sproxy");
+                    }
+
+                    printf("Sent heartbeat to sproxy\n");
                 }
                 // If there was an error with select, this is non recoverable
                 else if (resultOfSelect < 0)
@@ -306,10 +341,10 @@ int main(int argc, char** argv)
                     return -1;
                 }
 
-                // If input is ready on serverSocket, deconstruct packet and handle
+                // If input is ready on serverSocket, place data into receivedPacket
                 if (FD_ISSET(serverSocketFD, &socketSet))
                 {   
-                    // TODO: add logit to deconstruct the type of packet received and handle it, send to clientSocket if neccessary
+                    
                 }
 
                 // If input is ready on clientSocket, construct packet and send to serverSocket
@@ -353,6 +388,7 @@ int main(int argc, char** argv)
     free(dataPacket.payload);
     free(receivedPacket.payload);
     free(sendBuffer);
+    free(receiveBuffer);
 
     return 0;
 }
@@ -399,4 +435,23 @@ int generateID(int oldID)
     } while (newID == oldID);
 
     return newID;
+}
+
+int compressPacket(void* buffer, struct packet pck)
+{
+    int index = 0;
+
+    // Write in packet type
+    *(uint32_t*) (buffer+index) = pck.type;
+    index += sizeof(uint32_t);
+
+    // Write in payload length
+    *(uint32_t*) (buffer+index) = pck.length;
+    index += sizeof(uint32_t);
+
+    // Write in the payload
+    memcpy(buffer+index, pck.payload, pck.length);
+    index += pck.length;
+
+    return index; // This should now equal the size of the data in buffer
 }
