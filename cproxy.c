@@ -222,7 +222,7 @@ int main(int argc, char** argv)
             // accept a new client
             printf("cproxy waiting for new connection...\n");
             clientSocketFD = accept(listenSocketFD, &clientAddress, &clientAddressLength);
-            if (clientSocketFD < -1) // accept returns -1 on error
+            if (clientSocketFD <= -1) // accept returns -1 on error
             {
                 perror("cproxy unable to receive connection from client");
                 continue; // Repeat loop to receive another client connection
