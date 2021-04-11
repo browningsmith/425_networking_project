@@ -280,6 +280,8 @@ int main(int argc, char** argv)
                 perror("sproxy unable to connect to telnet daemon");
                 continue; // move to attempt to reconnect to telnet daemon
             }
+
+            serverConnected = 1;
             printf("sproxy successfully connected to telnet daemon!\n");
         }
 
