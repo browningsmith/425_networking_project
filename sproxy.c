@@ -201,6 +201,10 @@ int main(int argc, char** argv)
         }
         printf("sproxy successfully connected to server!\n");
 
+        // Create nextTimeout timeval, and set it to currentTime to ensure the first message sent is a heartbeat
+        struct timeval nextTimeout;
+        gettimeofday(&nextTimeout, NULL);
+
         // Use select for data to be ready on both serverSocket and clientSocket //////////////////
         while (1)
         {   
@@ -209,13 +213,25 @@ int main(int argc, char** argv)
             FD_SET(serverSocketFD, &socketSet); // add server socket
             FD_SET(clientSocketFD, &socketSet); // add client socket
 
+            // Calculate new timeout value (passing a returned timeout value from a previous select call does not work on all OSs)
+            struct timeval currentTime;
+            gettimeofday(&currentTime, NULL);
+            struct timeval timeout;
+            timersub(&nextTimeout, &currentTime, &timeout);
+            if (timeout.tv_sec < 0) // If it came back negative, set to zero
+            {
+                timeout.tv_sec = 0;
+                timeout.tv_usec = 0;
+            }
+
+
             // Wait indefinitely for input to be available using select
             int resultOfSelect = select(
                     max(serverSocketFD, clientSocketFD) + 1,
                     &socketSet,
                     NULL,
                     NULL,
-                    NULL
+                    &timeout
                 );
             if(resultOfSelect < 0 )// select returns -1 on error
             {
@@ -244,6 +260,10 @@ int main(int argc, char** argv)
             // TODO ask if we need timeout var in select for this to work
             if(resultOfSelect == 0 )    // checks every second for lost heartbeat
             {
+                // Add a second to nextTimeout
+                    nextTimeout.tv_sec += 1;
+
+                // checking if there is 3 seconds of disconnect
                 getTimeOfDay(&newTime, NULL);
                 timersub(&newTime, &timeLastMessageSent, &timeDif); // getting the time difference
                 if(timeDif.tv_sec >= 3) // if the time difference is 3 or greater
@@ -258,6 +278,7 @@ int main(int argc, char** argv)
                     //free(buffer);
                     //return 0;
                 }
+                // TODO: send a heartbeat message back
             }
 
             // If input is ready on serverSocket, relay to clientSocket
