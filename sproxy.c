@@ -50,7 +50,7 @@ struct packet {
 };
 
 // globals
-struct timeval timeLastMessageSent;
+struct timeval timeLastMessageReceived;
 struct timeval newTime;
 struct timeval timeDif;
 int sessionID = 0;
@@ -331,7 +331,7 @@ int main(int argc, char** argv)
                 if(resultOfSelect == 0 )
                 {
                     gettimeofday(&newTime, NULL);
-                    timersub(&newTime, &timeLastMessageSent, &timeDif); // getting the time difference
+                    timersub(&newTime, &timeLastMessageReceived, &timeDif); // getting the time difference
                     if(timeDif.tv_sec >= 3) // if the time difference is 3 or greater
                     {
                         //TODO: close the sockets between cproxy and sproxy
@@ -433,6 +433,9 @@ int main(int argc, char** argv)
                 // If input is ready on clientSocket, place data into receivedPacket
                 if (FD_ISSET(clientSocketFD, &socketSet))
                 {   
+                    // Update timeLastMessageReceived
+                    gettimeofday(&timeLastMessageReceived, NULL);
+                    
                     // Try to read bytesExpected into receiveBuffer, starting at receiveBufferIndex
                     bytesRead = recv(clientSocketFD, receiveBuffer + receiveBufferIndex, bytesExpected, 0);
 
@@ -594,8 +597,8 @@ int main(int argc, char** argv)
             printf("sessionID changed\n");
             // TODO something something Daemon
         }
-        gettimeofday(&timeLastMessageSent, NULL); // setting the time of heartbeat recieved
-        printf("heartbeat read at %li seconds\n", timeLastMessageSent.tv_sec);
+        gettimeofday(&timeLastMessageReceived, NULL); // setting the time of heartbeat recieved
+        printf("heartbeat read at %li seconds\n", timeLastMessageReceived.tv_sec);
     } else // if the message is a data one
     {
          // Write from buffer to sendFD
