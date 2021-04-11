@@ -259,7 +259,10 @@ int main(int argc, char** argv)
 
             serverConnected = 1;
             printf("cproxy successfully connected to server!\n");
+        }
 
+        if (serverConnected && clientConnected)
+        {
             // Reset segmentExpected to PACKET_TYPE and bytesExpected to sizeof(uint32_t)
             segmentExpected = PACKET_TYPE;
             bytesExpected = sizeof(uint32_t);
@@ -493,7 +496,7 @@ int main(int argc, char** argv)
                     }
 
                     // Create packet and send to serverSocketFD
-                    dataPacket.length = bytesRead;
+                    dataPacket.length = clientBytesRead;
                     int bytesToSend = compressPacket(sendBuffer, dataPacket);
                     int bytesSent = send(serverSocketFD, sendBuffer, bytesToSend, 0);
                     // Report if there was an error (just for debugging, no need to exit)
@@ -507,28 +510,6 @@ int main(int argc, char** argv)
                     }
                 }
             }
-
-            // // Close server socket
-            // if (close(serverSocketFD)) // close returns -1 on error
-            // {
-            //     perror("cproxy unable to properly close server socket");
-            // }
-            // else
-            // {
-            //     printf("cproxy closed connection to server\n");
-            // }
-            // serverConnected = 0;
-
-            // // Close client socket
-            // if (close(clientSocketFD)) // close returns -1 on error
-            // {
-            //     perror("cproxy unable to properly close client socket");
-            // }
-            // else
-            // {
-            //     printf("cproxy closed connection to client\n");
-            // }
-            // clientConnected = 0;
         }
     }
 
