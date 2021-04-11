@@ -62,6 +62,18 @@ struct packet {
  *************************************/
 int max(int a, int b);
 
+/******************************************
+ * generateID
+ * 
+ * Arguments: int oldID
+ * Returns: int
+ * 
+ * Generates a new session ID using rand()
+ * but ensures that it is not the same as
+ * the old session ID
+ *****************************************/
+int generateID(int oldID);
+
 /*************************************
  * relay
  * 
@@ -79,10 +91,14 @@ int max(int a, int b);
 
 int main(int argc, char** argv)
 {
-    int sessionID;
+    int sessionID = 0;
     segmentType segmentExpected = PACKET_TYPE;
     int bytesExpected = sizeof(uint32_t);
     int bytesRead = 0;
+
+    // Booleans that keep track of which sockets are connected
+    int clientConnected = 0; // 0 false, !0 true
+    int serverConnected = 0; // 0 false, !0 true
 
     int listenSocketFD, clientSocketFD, serverSocketFD; // Socket file descriptor
     fd_set socketSet;
@@ -92,9 +108,18 @@ int main(int argc, char** argv)
     socklen_t clientAddressLength;
     void* sendBuffer = NULL;
 
-    // Booleans that keep track of which sockets are connected
-    int clientConnected = 0; // 0 false, !0 true
-    int serverConnected = 0; // 0 false, !0 true
+    // Get listenPort and serverPort from command line
+    if (argc < 4)
+    {
+        printf(
+            "ERROR: You must enter the port to listen for new connections on,\n"
+            "       as well as the address and port number to forward data to\n"
+            "Usage: ./cproxy lport sip sport\n"
+        );
+        return -1;
+    }
+    listenPort = atoi(argv[1]);
+    serverPort = atoi(argv[3]);
     
     // defining the heartbeat packet with session ID
     struct packet heartbeatPacket;
@@ -134,19 +159,6 @@ int main(int argc, char** argv)
         perror("Unable to allocate space for the sendBuffer");
         return -1;
     }
-
-    // Get listenPort and serverPort from command line
-    if (argc < 4)
-    {
-        printf(
-            "ERROR: You must enter the port to listen for new connections on,\n"
-            "       as well as the address and port number to forward data to\n"
-            "Usage: ./cproxy lport sip sport\n"
-        );
-        return -1;
-    }
-    listenPort = atoi(argv[1]);
-    serverPort = atoi(argv[3]);
 
     // Create listen socket
     listenSocketFD = socket(AF_INET, SOCK_STREAM, 0);
@@ -196,7 +208,7 @@ int main(int argc, char** argv)
             else
             {
                 clientConnected = 1;
-                // TODO: Generate new session ID
+                sessionID = generateID(sessionID);
                 printf("cproxy accepted new connection from client!\n");
             }
         }
@@ -307,27 +319,27 @@ int main(int argc, char** argv)
                 }
             }
 
-            // Close server socket
-            if (close(serverSocketFD)) // close returns -1 on error
-            {
-                perror("cproxy unable to properly close server socket");
-            }
-            else
-            {
-                printf("cproxy closed connection to server\n");
-            }
-            serverConnected = 0;
+            // // Close server socket
+            // if (close(serverSocketFD)) // close returns -1 on error
+            // {
+            //     perror("cproxy unable to properly close server socket");
+            // }
+            // else
+            // {
+            //     printf("cproxy closed connection to server\n");
+            // }
+            // serverConnected = 0;
 
-            // Close client socket
-            if (close(clientSocketFD)) // close returns -1 on error
-            {
-                perror("cproxy unable to properly close client socket");
-            }
-            else
-            {
-                printf("cproxy closed connection to client\n");
-            }
-            clientConnected = 0;
+            // // Close client socket
+            // if (close(clientSocketFD)) // close returns -1 on error
+            // {
+            //     perror("cproxy unable to properly close client socket");
+            // }
+            // else
+            // {
+            //     printf("cproxy closed connection to client\n");
+            // }
+            // clientConnected = 0;
         }
     }
 
@@ -337,7 +349,7 @@ int main(int argc, char** argv)
         perror("cproxy unable to close listen socket");
     }
 
-    // free buffer
+    // free buffers
     free(dataPacket.payload);
     free(receivedPacket.payload);
     free(sendBuffer);
@@ -374,4 +386,17 @@ int max(int a, int b)
     }
 
     return b;
+}
+
+int generateID(int oldID)
+{
+    int newID;
+    
+    do
+    {
+        newID = rand();
+
+    } while (newID == oldID);
+
+    return newID;
 }
