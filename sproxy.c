@@ -268,15 +268,17 @@ int main(int argc, char** argv)
                 timersub(&newTime, &timeLastMessageSent, &timeDif); // getting the time difference
                 if(timeDif.tv_sec >= 3) // if the time difference is 3 or greater
                 {
-                    //TODO: close the sockets between cproxy and sproxy (is this right???)
-                    // Close listen socket
-                    //if (close(listenSocketFD)) // close returns -1 on error
-                    //{
-                     //   perror("sproxy unable to close listen socket");
-                    //}
-                    // free buffer
-                    //free(buffer);
-                    //return 0;
+                    // Close client socket
+                    if (close(clientSocketFD)) // close returns -1 on error
+                    {
+                        perror("sproxy unable to properly close client socket");
+                    }
+                    else
+                    {
+                        printf("sproxy closed connection to client\n");
+                    }
+                    // breaking out of the inner loop
+                    break;
                 }
                 // TODO: send a heartbeat message back
             }
