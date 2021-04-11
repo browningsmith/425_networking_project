@@ -32,7 +32,16 @@ Note:       This is the client part of the program. The program takes 3
 #include <unistd.h>
 
 #define BUFFER_LEN 1024
-#define PACKET_SIZE 2*sizeof(uint32_t)+BUFFER_LEN
+
+typedef enum {
+
+    PACKET_TYPE,
+    DATA_LENGTH,
+    DATA_PAYLOAD,
+    HEARTBEAT_LENGTH,
+    HEARTBEAT_PAYLOAD,
+
+} segmentType;
 
 struct packet {
     // header
@@ -66,28 +75,61 @@ int max(int a, int b);
  * 
  * Returns -1 on error, 0 otherwise
  *************************************/
-int relay(int receiveFD, int sendFD, void* buffer, int bufferSize);
+// int relay(int receiveFD, int sendFD, void* buffer, int bufferSize);
 
 int main(int argc, char** argv)
 {
+    int sessionID;
     int listenSocketFD, clientSocketFD, serverSocketFD; // Socket file descriptor
     fd_set socketSet;
     in_port_t listenPort, serverPort;
     struct sockaddr_in listenAddress, serverAddress;
     struct sockaddr clientAddress;
     socklen_t clientAddressLength;
-    void* buffer = NULL;
+    void* sendBuffer = NULL;
 
     // Booleans that keep track of which sockets are connected
     int clientConnected = 0; // 0 false, !0 true
     int serverConnected = 0; // 0 false, !0 true
     
-    // defining the heartbeat packet with a session ID
-    int sessionID = rand();
+    // defining the heartbeat packet with session ID
     struct packet heartbeatPacket;
     heartbeatPacket.type = (uint32_t) 0;
     heartbeatPacket.length = (uint32_t) sizeof(int);
-    heartbeatPacket.payload = (void*) sessionID;
+    heartbeatPacket.payload = (void*) &sessionID;
+
+    // defining the data packet
+    struct packet dataPacket;
+    dataPacket.type = (uint32_t) 1;
+    dataPacket.length = (uint32_t) 0;
+    
+    // Attempt to allocate space for dataPacket payload
+    dataPacket.payload = malloc(BUFFER_LEN);
+    if (dataPacket.payload == NULL)
+    {
+        perror("Unable to allocate space to store payload of dataPacket");
+        return -1;
+    }
+
+    // defining the receivedPacket
+    struct packet receivedPacket;
+    receivedPacket.length = (uint32_t) 0;
+
+    // Attempt to allocate space for receivedPacket payload
+    receivedPacket.payload = malloc(BUFFER_LEN);
+    if (receivedPacket.payload == NULL)
+    {
+        perror("Unable to allocate space to store payload of receivedPacket");
+        return -1;
+    }
+
+    // Attempt to allocate space for sendBuffer
+    sendBuffer = malloc(2*sizeof(uint32_t) + BUFFER_LEN);
+    if (sendBuffer == NULL)
+    {
+        perror("Unable to allocate space for the sendBuffer");
+        return -1;
+    }
 
     // Get listenPort and serverPort from command line
     if (argc < 4)
@@ -126,14 +168,6 @@ int main(int argc, char** argv)
     if (listen(listenSocketFD, 5) < 0) // listen returns -1 on error
     {
         perror("cproxy unable to listen to port");
-        return -1;
-    }
-
-    // Allocate space for buffer
-    buffer = malloc(BUFFER_LEN);
-    if (buffer == NULL) // malloc returns NULL on error
-    {
-        perror("Unable to allocate space for buffer");
         return -1;
     }
 
@@ -256,24 +290,16 @@ int main(int argc, char** argv)
                     return -1;
                 }
 
-                // If input is ready on serverSocket, relay to clientSocket
+                // If input is ready on serverSocket, deconstruct packet and handle
                 if (FD_ISSET(serverSocketFD, &socketSet))
                 {   
-                    if (relay(serverSocketFD, clientSocketFD, buffer, BUFFER_LEN) < 0) // relay returns -1 on error
-                    {
-                        printf("Unable to send data from server to client\nConnection closed by either server or client\n");
-                        break; // Break out of loop to move on to close server and client
-                    }
+                    // TODO: add logit to deconstruct the type of packet received and handle it, send to clientSocket if neccessary
                 }
 
-                // If input is ready on clientSocket, relay to serverSocket
+                // If input is ready on clientSocket, construct packet and send to serverSocket
                 if (FD_ISSET(clientSocketFD, &socketSet))
                 {   
-                    if (relay(clientSocketFD, serverSocketFD, buffer, BUFFER_LEN) < 0) // relay returns -1 on error
-                    {
-                        printf("Unable to send data from client to server\nConnection closed by either server or client\n");
-                        break; // Break out of loop to move on to close server and client
-                    }
+                    // TODO: add logic to construct packet to send to serverSocket
                 }
             }
 
@@ -308,12 +334,14 @@ int main(int argc, char** argv)
     }
 
     // free buffer
-    free(buffer);
+    free(dataPacket.payload);
+    free(receivedPacket.payload);
+    free(sendBuffer);
 
     return 0;
 }
 
-int relay(int receiveFD, int sendFD, void* buffer, int bufferSize)
+/*int relay(int receiveFD, int sendFD, void* buffer, int bufferSize)
 {
     // Read from receiveFD into buffer
     ssize_t bytesRead = recv(receiveFD, buffer, bufferSize, 0);
@@ -332,7 +360,7 @@ int relay(int receiveFD, int sendFD, void* buffer, int bufferSize)
     }
 
     return 0;
-}
+}*/
 
 int max(int a, int b)
 {
