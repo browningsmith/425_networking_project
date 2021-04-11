@@ -80,6 +80,10 @@ int max(int a, int b);
 int main(int argc, char** argv)
 {
     int sessionID;
+    segmentType segmentExpected = PACKET_TYPE;
+    int bytesExpected = sizeof(uint32_t);
+    int bytesRead = 0;
+
     int listenSocketFD, clientSocketFD, serverSocketFD; // Socket file descriptor
     fd_set socketSet;
     in_port_t listenPort, serverPort;
