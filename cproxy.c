@@ -264,6 +264,9 @@ int main(int argc, char** argv)
             segmentExpected = PACKET_TYPE;
             bytesExpected = sizeof(uint32_t);
 
+            // Set receiveBufferIndex to 0
+            receiveBufferIndex = 0;
+
             // Create nextTimeout timeval, and set it to currentTime to ensure the first message sent is a heartbeat
             struct timeval nextTimeout;
             gettimeofday(&nextTimeout, NULL);
@@ -344,13 +347,164 @@ int main(int argc, char** argv)
                 // If input is ready on serverSocket, place data into receivedPacket
                 if (FD_ISSET(serverSocketFD, &socketSet))
                 {   
-                    
+                    // Try to read bytesExpected into receiveBuffer, starting at receiveBufferIndex
+                    bytesRead = recv(serverSocketFD, receiveBuffer + receiveBufferIndex, bytesExpected, 0);
+
+                    // If bytesRead is 0 or -1, controlled disconnect, disconnect both sockets and
+                    // break into outer while loop
+                    if (bytesRead < 0)
+                    {
+                        printf("recv() returned with %i on serverSocketFD\n", bytesRead);
+
+                        // Close server socket
+                        if (close(serverSocketFD)) // close returns -1 on error
+                        {
+                            perror("cproxy unable to properly close server socket");
+                        }
+                        else
+                        {
+                            printf("cproxy closed connection to server\n");
+                        }
+                        serverConnected = 0;
+
+                        // Close client socket
+                        if (close(clientSocketFD)) // close returns -1 on error
+                        {
+                            perror("cproxy unable to properly close client socket");
+                        }
+                        else
+                        {
+                            printf("cproxy closed connection to client\n");
+                        }
+                        clientConnected = 0;
+
+                        break;
+                    }
+
+                    // Update receiveBufferIndex
+                    receiveBufferIndex += bytesRead;
+
+                    // Update bytesExpected
+                    bytesExpected -= bytesRead;
+
+                    // If bytesExpected is 0, we just finished reading a packet segment
+                    if (bytesExpected == 0)
+                    {
+                        // Reset receiveBufferIndex
+                        receiveBufferIndex = 0;
+                        
+                        switch (segmentExpected)
+                        {
+                            case PACKET_TYPE:
+
+                                // Copy packet type data into receivedPacket.type
+                                receivedPacket.type = *(uint32_t*) receiveBuffer;
+
+                                // Change segmentExpected to LENGTH
+                                segmentExpected = LENGTH;
+
+                                // Update bytesExpected to sizeof(uint32_t)
+                                bytesExpected = sizeof(uint32_t);
+
+                                break;
+                            case LENGTH:
+
+                                // Copy packet length data into receivedPacket.length
+                                receivedPacket.length = *(uint32_t*) receiveBuffer;
+
+                                // Change segmentExpected to PAYLOAD
+                                segmentExpected = PAYLOAD;
+
+                                // Update bytesExpected to receivedPacket.length
+                                bytesExpected = receivedPacket.length;
+
+                                break;
+                            case PAYLOAD:
+                                
+                                // Copy packet payload data into receivedPacket.payload
+                                memcpy(receivedPacket.payload, receiveBuffer, receivedPacket.length);
+
+                                // Change segmentExpected to PACKET_TYPE
+                                segmentExpected = PACKET_TYPE;
+
+                                // Update bytesExpected to sizeof(uint32_t)
+                                bytesExpected = sizeof(uint32_t);
+
+                                // If the packet is a data packet, send the payload to client
+                                if (receivedPacket.type != 0)
+                                {
+                                    printf("Data packet received from sproxy\n");
+
+                                    int bytesSent = send(clientSocketFD, receivedPacket.payload, receivedPacket.length, 0);
+
+                                    // Report if there was an error (just for debugging, no need to exit)
+                                    if (bytesSent < 0)
+                                    {
+                                        perror("Unable to send data to telnet");
+                                    }
+                                    else
+                                    {
+                                        printf("Sent data to telnet\n");
+                                    }
+                                }
+                                else
+                                {
+                                    printf("Heartbeat received from sproxy\n");
+                                }
+
+                                break;
+                        }
+                    }
                 }
 
                 // If input is ready on clientSocket, construct packet and send to serverSocket
                 if (FD_ISSET(clientSocketFD, &socketSet))
                 {   
-                    // TODO: add logic to construct packet to send to serverSocket
+                    int clientBytesRead = recv(clientSocketFD, dataPacket.payload, BUFFER_LEN, 0);
+                    // If bytesRead is 0 or -1, controlled disconnect, disconnect both sockets and
+                    // break into outer while loop
+                    if (clientBytesRead < 0)
+                    {
+                        printf("recv() returned with %i on clientSocketFD\n", clientBytesRead);
+                        
+                        // Close server socket
+                        if (close(serverSocketFD)) // close returns -1 on error
+                        {
+                            perror("cproxy unable to properly close server socket");
+                        }
+                        else
+                        {
+                            printf("cproxy closed connection to server\n");
+                        }
+                        serverConnected = 0;
+
+                        // Close client socket
+                        if (close(clientSocketFD)) // close returns -1 on error
+                        {
+                            perror("cproxy unable to properly close client socket");
+                        }
+                        else
+                        {
+                            printf("cproxy closed connection to client\n");
+                        }
+                        clientConnected = 0;
+
+                        break;
+                    }
+
+                    // Create packet and send to serverSocketFD
+                    dataPacket.length = bytesRead;
+                    int bytesToSend = compressPacket(sendBuffer, dataPacket);
+                    int bytesSent = send(serverSocketFD, sendBuffer, bytesToSend, 0);
+                    // Report if there was an error (just for debugging, no need to exit)
+                    if (bytesSent < 0)
+                    {
+                        perror("Unable to send data to sproxy");
+                    }
+                    else
+                    {
+                        printf("Sent data to sproxy\n");
+                    }
                 }
             }
 
