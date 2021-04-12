@@ -237,6 +237,7 @@ int main(int argc, char** argv)
             else
             {
                 clientConnected = 1;
+                gettimeofday(&timeLastMessageReceived, NULL);
                 printf("sproxy accepted new connection from client!\n");
 
                 //TODO: Add logic to check if the new sessionID of the client is the same as before

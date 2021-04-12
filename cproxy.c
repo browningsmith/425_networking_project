@@ -285,6 +285,7 @@ int main(int argc, char** argv)
             }
 
             serverConnected = 1;
+            gettimeofday(&timeLastMessageReceived, NULL);
             printf("cproxy successfully connected to server!\n");
         }
 
