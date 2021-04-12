@@ -86,21 +86,6 @@ int generateID(int oldID);
  *****************************************/
 int compressPacket(void* buffer, struct packet);
 
-/*************************************
- * relay
- * 
- * Arguments: int receiveFD, sendFD
- *            char* buffer
- * Returns: int
- * 
- * Reads a message up to bufferSize bytes from
- * receiveFD and copies it in to buffer, then
- * writes the copied message over to sendFD
- * 
- * Returns -1 on error, 0 otherwise
- *************************************/
-// int relay(int receiveFD, int sendFD, void* buffer, int bufferSize);
-
 int main(int argc, char** argv)
 {
     int sessionID = 0;
@@ -253,7 +238,6 @@ int main(int argc, char** argv)
                 perror("cproxy unable to create server socket. Trying again in one second");
 
                 struct timeval oneSec = {
-
                     .tv_sec = 1,
                     .tv_usec = 0
                 };
@@ -275,7 +259,6 @@ int main(int argc, char** argv)
             }
 
             struct timeval oneSec = {
-
                 .tv_sec = 1,
                 .tv_usec = 0
             };
@@ -489,18 +472,12 @@ int main(int argc, char** argv)
                                 // If the packet is a data packet, send the payload to client
                                 if (receivedPacket.type != 0)
                                 {
-                                    printf("Data packet received from sproxy\n");
-
                                     int bytesSent = send(clientSocketFD, receivedPacket.payload, receivedPacket.length, 0);
 
                                     // Report if there was an error (just for debugging, no need to exit)
                                     if (bytesSent < 0)
                                     {
                                         perror("Unable to send data to telnet");
-                                    }
-                                    else
-                                    {
-                                        printf("Sent data to telnet\n");
                                     }
                                 }
                                 else
@@ -557,10 +534,6 @@ int main(int argc, char** argv)
                     {
                         perror("Unable to send data to sproxy");
                     }
-                    else
-                    {
-                        printf("Sent data to sproxy\n");
-                    }
                 }
             }
         }
@@ -580,27 +553,6 @@ int main(int argc, char** argv)
 
     return 0;
 }
-
-/*int relay(int receiveFD, int sendFD, void* buffer, int bufferSize)
-{
-    // Read from receiveFD into buffer
-    ssize_t bytesRead = recv(receiveFD, buffer, bufferSize, 0);
-    if (bytesRead < 1) // Returns 0 on closed connection, -1 on error
-    {
-        printf("Unable to receive bytes, either connection closed or error\n");
-        return -1;
-    }
-
-    // Write from buffer to sendFD
-    ssize_t bytesSent = send(sendFD, buffer, bytesRead, 0);
-    if (bytesSent < 1) // Returns -1 on error
-    {
-        printf("Unable to send bytes\n");
-        return -1;
-    }
-
-    return 0;
-}*/
 
 int max(int a, int b)
 {

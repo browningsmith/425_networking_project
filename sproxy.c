@@ -34,11 +34,9 @@ Note:       This is the server part of the program. The program takes 1
 #define TELNET_PORT 23
 
 typedef enum {
-
     PACKET_TYPE,
     LENGTH,
     PAYLOAD,
-
 } segmentType;
 
 struct packet {
@@ -74,38 +72,8 @@ int max(int a, int b);
  *****************************************/
 int compressPacket(void* buffer, struct packet);
 
-/*************************************
- * relay
- * 
- * Arguments: int receiveFD, sendFD
- *            char* buffer
- * Returns: int
- * 
- * Reads a message up to bufferSize bytes from
- * receiveFD and copies it in to buffer, then
- * writes the copied message over to sendFD
- * 
- * Returns -1 on error, 0 otherwise
- *************************************/
-//int relay(int receiveFD, int sendFD, void* buffer, int bufferSize);
-
-/*************************************
- * isValidAddress
- * 
- * Arguments: char* oldClientAddress, char* newClientAddress,
- *            char* serverVMAddress
- * Returns: int
- * 
- * compares a new address with the old to see if the
- * new address is a valid one
- * 
- * Returns 0 on true, -1 on error, >0 on false
- *************************************/
-int isValidAddress(char* oldClientAddress, char* newClientAddress, char* serverVMAddress);
-
 int main(int argc, char** argv)
 {
-    // SETUP //////////////////////////////////////////////////////////////////////////////////////
     int sessionID = 0;
     segmentType segmentExpected = PACKET_TYPE;
     int bytesExpected = sizeof(uint32_t); // Size of packet.type
@@ -133,8 +101,7 @@ int main(int argc, char** argv)
     if (argc < 2)
     {
         printf(
-            "ERROR: No port specified!\n"
-            "Usage: ./sproxy portNumber\n"
+            "ERROR: No port specified!\nUsage: ./sproxy portNumber\n"
         );
         return -1;
     }
@@ -219,7 +186,7 @@ int main(int argc, char** argv)
     serverAddress.sin_addr.s_addr = inet_addr(LOCALHOST);
     serverAddress.sin_port = htons(TELNET_PORT);
 
-    // Infinite loop, continue to listen for new connections //////////////////////////////////////
+    // Infinite loop, continue to listen for new connections
     while (1)
     {
         if (clientConnected == 0)
@@ -255,7 +222,6 @@ int main(int argc, char** argv)
                 perror("sproxy unable to create server socket. Trying again in one second");
 
                 struct timeval oneSec = {
-
                     .tv_sec = 1,
                     .tv_usec = 0
                 };
@@ -277,7 +243,6 @@ int main(int argc, char** argv)
                 }
 
                 struct timeval oneSec = {
-
                     .tv_sec = 1,
                     .tv_usec = 0
                 };
@@ -305,7 +270,7 @@ int main(int argc, char** argv)
             // Set nextTimeout to current time to ensure the first message sent is a heartbeat
             gettimeofday(&nextTimeout, NULL);
 
-            // Use select for data to be ready on both serverSocket and clientSocket //////////////////
+            // Use select for data to be ready on both serverSocket and clientSocket
             while (1)
             {   
                 // Reset socketSet
@@ -436,7 +401,7 @@ int main(int argc, char** argv)
                             printf("sproxy closed connection to client\n");
                         }
                         clientConnected = 0;
-
+                        
                         break;
                     }
 
@@ -492,18 +457,12 @@ int main(int argc, char** argv)
                                 // If the packet is a data packet, send the payload to server
                                 if (receivedPacket.type != 0)
                                 {
-                                    printf("Data packet received from sproxy\n");
-
                                     int bytesSent = send(serverSocketFD, receivedPacket.payload, receivedPacket.length, 0);
 
                                     // Report if there was an error (just for debugging, no need to exit)
                                     if (bytesSent < 0)
                                     {
                                         perror("Unable to send data to cproxy");
-                                    }
-                                    else
-                                    {
-                                        printf("Sent data to tcproxy\n");
                                     }
                                 }
                                 // If the packet is a heartbeat packet, check if new session ID matches the current session ID
@@ -532,7 +491,6 @@ int main(int argc, char** argv)
                                         printf("Closed connection to telnet daemon\n");
                                     }
                                 }
-
                                 break;
                         }
                     }
@@ -588,10 +546,6 @@ int main(int argc, char** argv)
                     {
                         perror("Unable to send data to cproxy");
                     }
-                    else
-                    {
-                        printf("Sent data to cproxy\n");
-                    }
                 }
             }
         }
@@ -611,55 +565,6 @@ int main(int argc, char** argv)
 
     return 0;
 }
-
-/*int relay(int receiveFD, int sendFD, void* buffer, int bufferSize)
-{
-    uint32_t packetType;
-    uint32_t payloadLength;
-    int newSessionID;
-
-   // reading in the packet type
-    ssize_t bytesRead = recv(receiveFD, buffer, sizeof(uint32_t), 0);
-    if (bytesRead < 1) return bytesRead;
-    packetType = *((uint32_t*) buffer);
-
-    // reading in the payload length
-    bytesRead = recv(receiveFD, buffer, sizeof(uint32_t), 0);
-    if (bytesRead < 1) return bytesRead;
-    payloadLength = *((uint32_t*) buffer);
-
-    // reading the payload
-    bytesRead = recv(receiveFD, buffer, payloadLength, 0);
-    if (bytesRead < 1) return bytesRead;
-
-    // acting on the message 
-    if(packetType == 0) // if the message is a heartbeat
-    {
-        newSessionID = *((int*) buffer);
-        if(sessionID == 0) // if this is the first heartbeat message for the server
-        {
-            printf("first heartbeat read\n");
-            sessionID = newSessionID;
-        } else if (sessionID != newSessionID) // if this is a different session (reset Daemon???)
-        {
-            printf("sessionID changed\n");
-            // TODO something something Daemon
-        }
-        gettimeofday(&timeLastMessageReceived, NULL); // setting the time of heartbeat recieved
-        printf("heartbeat read at %li seconds\n", timeLastMessageReceived.tv_sec);
-    } else // if the message is a data one
-    {
-         // Write from buffer to sendFD
-        printf("data read\n");
-        ssize_t bytesSent = send(sendFD, buffer, bytesRead, 0);
-        if (bytesSent < 1) // Returns -1 on error
-        {
-            printf("Unable to send bytes\n");
-            return -1;
-        }
-    }
-    return 0;
-}*/
 
 int max(int a, int b)
 {
@@ -688,35 +593,4 @@ int compressPacket(void* buffer, struct packet pck)
     index += pck.length;
 
     return index; // This should now equal the size of the data in buffer
-}
-
-int isValidAddress(char *oldClientAddress, char *newClientAddress, char *serverVMAddress)
-{
-    char *lastNum;
-    int i = 0;
-    int periods = 0;
-    
-    // if any of the pointers are null
-    if(oldClientAddress == NULL || newClientAddress == NULL || serverVMAddress == NULL) return 1;
-
-    // check that the first 3 numbers remain the same
-    while(periods<3){
-        if(oldClientAddress[i] != newClientAddress[i]) return 2;
-        if(newClientAddress[i] == '.') periods++;
-        i++;
-    }
-
-    // grabbing the last number based if there is a slash or not
-    lastNum = (strchr(newClientAddress, '/') == NULL)? strrchr(newClientAddress, '.') : strrchr(newClientAddress, '/');
-    lastNum++;
-    
-    // checking that the last num is unique
-    if(strstr(oldClientAddress, lastNum) != NULL) return 3;
-    if(strstr(serverVMAddress, lastNum) != NULL) return 4;
-    
-    // checking that the number is in range
-    if(atoi(lastNum)>254 || atoi(lastNum)<1) return 5;
-
-    // else new address is valid
-    return 0;
 }
