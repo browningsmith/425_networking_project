@@ -1,0 +1,7 @@
+.vscode*
+*.o
+*.tar
+*.tar.gz
+*.zip
+sproxy
+cproxy
