@@ -112,6 +112,10 @@ int main(int argc, char** argv)
     int clientConnected = 0; // 0 false, !0 true
     int serverConnected = 0; // 0 false, !0 true
 
+    // Timevals that keep track of next select() timeout, and last message received
+    struct timeval timeLastMessageReceived;
+    struct timeval nextTimeout;
+
     int listenSocketFD, clientSocketFD, serverSocketFD; // Socket file descriptor
     fd_set socketSet;
     in_port_t listenPort, serverPort;
@@ -295,8 +299,7 @@ int main(int argc, char** argv)
             // Set receiveBufferIndex to 0
             receiveBufferIndex = 0;
 
-            // Create nextTimeout timeval, and set it to currentTime to ensure the first message sent is a heartbeat
-            struct timeval nextTimeout;
+            // Set nextTimeout to currentTime to ensure the first message sent is a heartbeat
             gettimeofday(&nextTimeout, NULL);
 
             // Use select for data to be ready on both serverSocket and clientSocket
@@ -326,9 +329,29 @@ int main(int argc, char** argv)
                     NULL,
                     &timeout
                 );
-                // If select timed out, send a heartbeat
+                // If select timed out, check for a heartbeat from sproxy, and also send one
                 if (resultOfSelect == 0)
                 {
+                    struct timeval newTime;
+                    gettimeofday(&newTime, NULL);
+                    struct timeval timeDif;
+                    timersub(&newTime, &timeLastMessageReceived, &timeDif); // getting the time difference
+                    if(timeDif.tv_sec >= 3) // if the time difference is 3 or greater
+                    {
+                        //TODO: close the sockets between cproxy and sproxy
+                        if (close(serverSocketFD)) // close returns -1 on error
+                        {
+                            perror("cproxy unable to properly close server socket");
+                        }
+                        else
+                        {
+                            printf("cproxy closed connection to client\n");
+                        }
+                        serverConnected = 0;
+
+                        break;
+                    }
+                    
                     // Add a second to nextTimeout
                     nextTimeout.tv_sec += 1;
 
