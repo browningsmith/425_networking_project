@@ -341,8 +341,10 @@ int main(int argc, char** argv)
                     {
                         perror("Unable to send heartbeat message to sproxy");
                     }
-
-                    printf("Sent heartbeat to sproxy\n");
+                    else
+                    {
+                        printf("Sent heartbeat to sproxy\n");
+                    }
                 }
                 // If there was an error with select, this is non recoverable
                 else if (resultOfSelect < 0)

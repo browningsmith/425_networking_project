@@ -49,12 +49,6 @@ struct packet {
     void* payload;      // either int sessionID or buffer
 };
 
-// globals
-struct timeval timeLastMessageReceived;
-struct timeval newTime;
-struct timeval timeDif;
-int sessionID = 0;
-
 /*************************************
  * max
  * 
@@ -120,6 +114,10 @@ int main(int argc, char** argv)
     // Booleans that keep track of which sockets are connected
     int clientConnected = 0; // 0 false, !0 true
     int serverConnected = 0; // 0 false, !0 true
+
+    // Timevals that keep track of next select() timeout, and last message received
+    struct timeval timeLastMessageReceived;
+    struct timeval nextTimeout;
     
     int listenSocketFD, clientSocketFD, serverSocketFD; // Socket file descriptor
     fd_set socketSet;
@@ -304,8 +302,7 @@ int main(int argc, char** argv)
             // Set receiveBufferIndex to 0
             receiveBufferIndex = 0;
             
-            // Create nextTimeout timeval, and set it to currentTime to ensure the first message sent is a heartbeat
-            struct timeval nextTimeout;
+            // Set nextTimeout to current time to ensure the first message sent is a heartbeat
             gettimeofday(&nextTimeout, NULL);
 
             // Use select for data to be ready on both serverSocket and clientSocket //////////////////
@@ -338,7 +335,9 @@ int main(int argc, char** argv)
                 // If select timed out, check for a heartbeat from cproxy, and also send one
                 if(resultOfSelect == 0 )
                 {
+                    struct timeval newTime;
                     gettimeofday(&newTime, NULL);
+                    struct timeval timeDif;
                     timersub(&newTime, &timeLastMessageReceived, &timeDif); // getting the time difference
                     if(timeDif.tv_sec >= 3) // if the time difference is 3 or greater
                     {
@@ -358,7 +357,20 @@ int main(int argc, char** argv)
 
                     // Add a second to nextTimeout
                     nextTimeout.tv_sec += 1;
-                    printf("Would have send a heartbeat to cproxy now\n");
+
+                    // Compress and send heartbeat packet
+                    int bytesToSend = compressPacket(sendBuffer, heartbeatPacket);
+                    int bytesSent = send(clientSocketFD, sendBuffer, bytesToSend, 0);
+
+                    // Report if there was an error (just for debugging, no need to exit)
+                    if (bytesSent < 0)
+                    {
+                        perror("Unable to send heartbeat message to sproxy");
+                    }
+                    else
+                    {
+                        printf("Sent heartbeat to sproxy\n");
+                    }
                 }
                 // If there was an error with select, this is non recoverable
                 else if (resultOfSelect < 0)
