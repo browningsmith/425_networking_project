@@ -413,7 +413,7 @@ int main(int argc, char** argv)
 
                     // If bytesRead is 0 or -1, controlled disconnect, disconnect both sockets and
                     // break into outer while loop
-                    if (bytesRead < 0)
+                    if (bytesRead <= 0)
                     {
                         printf("recv() returned with %i on clientSocketFD\n", bytesRead);
 
@@ -552,7 +552,7 @@ int main(int argc, char** argv)
                     int serverBytesRead = recv(serverSocketFD, dataPacket.payload, BUFFER_LEN, 0);
                     // If bytesRead is 0 or -1, controlled disconnect, disconnect both sockets and
                     // break into outer while loop
-                    if (serverBytesRead < 0)
+                    if (serverBytesRead <= 0)
                     {
                         printf("recv() returned with %i on serverSocketFD\n", serverBytesRead);
                         
