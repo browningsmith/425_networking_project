@@ -186,6 +186,11 @@ int main(int argc, char** argv)
         return -1;
     }
 
+    // Seed RNG to help ensure that two different cproxy sessions don't start with the same sessionID
+    struct timeval currentTime;
+    gettimeofday(&currentTime, NULL);
+    srand(currentTime.tv_usec);
+
     // Create listen socket
     listenSocketFD = socket(AF_INET, SOCK_STREAM, 0);
     if (listenSocketFD < 0) // socket returns -1 on error
