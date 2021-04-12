@@ -566,6 +566,8 @@ int main(int argc, char** argv)
         }
     }
 
+    printf("Error! Outer while loop was broken!!!!\n");
+
     // Close listen socket
     if (close(listenSocketFD)) // close returns -1 on error
     {
