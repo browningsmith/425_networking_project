@@ -400,6 +400,9 @@ int main(int argc, char** argv)
                 // If input is ready on serverSocket, place data into receivedPacket
                 if (FD_ISSET(serverSocketFD, &socketSet))
                 {   
+                    // Update timeLastMessageReceived
+                    gettimeofday(&timeLastMessageReceived, NULL);
+                    
                     // Try to read bytesExpected into receiveBuffer, starting at receiveBufferIndex
                     bytesRead = recv(serverSocketFD, receiveBuffer + receiveBufferIndex, bytesExpected, 0);
 
