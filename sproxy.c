@@ -75,6 +75,7 @@ int compressPacket(void* buffer, struct packet);
 int main(int argc, char** argv)
 {
     int sessionID = 0;
+    int ongoingSessionPossible = 0;
     segmentType segmentExpected = PACKET_TYPE;
     int bytesExpected = sizeof(uint32_t); // Size of packet.type
     int bytesRead = 0;
@@ -207,9 +208,6 @@ int main(int argc, char** argv)
                 clientConnected = 1;
                 gettimeofday(&timeLastMessageReceived, NULL);
                 printf("sproxy accepted new connection from client!\n");
-
-                //TODO: Add logic to check if the new sessionID of the client is the same as before
-                // If the sessionID is different, need to close serverSocketFD
             }
         }
 
@@ -318,6 +316,7 @@ int main(int argc, char** argv)
                             printf("sproxy closed connection to client\n");
                         }
                         clientConnected = 0;
+                        ongoingSessionPossible = 1;
 
                         break;
                     }
@@ -403,6 +402,7 @@ int main(int argc, char** argv)
                             printf("sproxy closed connection to client\n");
                         }
                         clientConnected = 0;
+                        ongoingSessionPossible = 0;
                         
                         break;
                     }
@@ -474,11 +474,7 @@ int main(int argc, char** argv)
 
                                     int newID = *(int*) receivedPacket.payload;
 
-                                    if (newID == sessionID)
-                                    {
-                                        printf("Client has old sessionID, maintaining current telnet session\n");
-                                    }
-                                    else
+                                    if ((newID != sessionID) || (ongoingSessionPossible != 0))
                                     {
                                         printf("Client has new sessionID, closing connection to telnet daemon\n");
 
@@ -491,6 +487,10 @@ int main(int argc, char** argv)
                                         serverConnected = 0;
 
                                         printf("Closed connection to telnet daemon\n");
+                                    }
+                                    else
+                                    {
+                                        printf("Client has old sessionID, maintaining current telnet session\n");
                                     }
                                 }
                                 break;
@@ -535,6 +535,7 @@ int main(int argc, char** argv)
                             printf("sproxy closed connection to client\n");
                         }
                         clientConnected = 0;
+                        ongoingSessionPossible = 0;
 
                         break;
                     }
