@@ -474,9 +474,9 @@ int main(int argc, char** argv)
 
                                     int newID = *(int*) receivedPacket.payload;
 
-                                    if ((newID != sessionID) || (ongoingSessionPossible != 0))
+                                    if ((newID != sessionID) && (ongoingSessionPossible != 0))
                                     {
-                                        printf("Client has new sessionID, closing connection to telnet daemon\n");
+                                        printf("Client has new sessionID, closing current connection to telnet daemon\n");
 
                                         sessionID = newID;
 
@@ -487,6 +487,22 @@ int main(int argc, char** argv)
                                         serverConnected = 0;
 
                                         printf("Closed connection to telnet daemon\n");
+                                    }
+                                    else if ((newID == sessionID) && (ongoingSessionPossible == 0))
+                                    {
+                                        printf("Client has old sessionID, however it is impossible that there is a hanging telnet session\nClosing current connection to telnet daemon\n");
+
+                                        if (close(serverSocketFD) < 0)
+                                        {
+                                            perror("sproxy unable to properly close server socket");
+                                        }
+                                        serverConnected = 0;
+                                    }
+                                    else if (ongoingSessionPossible != 0)
+                                    {
+                                        printf("Client has new sessionID, however it is impossible that there is a hanging telnet session\nMaintaining current connection to telnet daemon\n");
+
+                                        sessionID = newID;
                                     }
                                     else
                                     {
