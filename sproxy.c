@@ -400,56 +400,6 @@ int main(int argc, char** argv)
                     return -1;
                 }
 
-                // If input is ready on serverSocket, construct a packet and send to client socket
-                if (FD_ISSET(serverSocketFD, &socketSet))
-                {   
-                    int serverBytesRead = recv(serverSocketFD, dataPacket.payload, BUFFER_LEN, 0);
-                    // If bytesRead is 0 or -1, controlled disconnect, disconnect both sockets and
-                    // break into outer while loop
-                    if (serverBytesRead < 0)
-                    {
-                        printf("recv() returned with %i on serverSocketFD\n", serverBytesRead);
-                        
-                        // Close server socket
-                        if (close(serverSocketFD)) // close returns -1 on error
-                        {
-                            perror("sproxy unable to properly close server socket");
-                        }
-                        else
-                        {
-                            printf("sproxy closed connection to server\n");
-                        }
-                        serverConnected = 0;
-
-                        // Close client socket
-                        if (close(clientSocketFD)) // close returns -1 on error
-                        {
-                            perror("sproxy unable to properly close client socket");
-                        }
-                        else
-                        {
-                            printf("sproxy closed connection to client\n");
-                        }
-                        clientConnected = 0;
-
-                        break;
-                    }
-
-                    // Create packet and send to clientSocketFD
-                    dataPacket.length = serverBytesRead;
-                    int bytesToSend = compressPacket(sendBuffer, dataPacket);
-                    int bytesSent = send(clientSocketFD, sendBuffer, bytesToSend, 0);
-                    // Report if there was an error (just for debugging, no need to exit)
-                    if (bytesSent < 0)
-                    {
-                        perror("Unable to send data to cproxy");
-                    }
-                    else
-                    {
-                        printf("Sent data to cproxy\n");
-                    }
-                }
-
                 // If input is ready on clientSocket, place data into receivedPacket
                 if (FD_ISSET(clientSocketFD, &socketSet))
                 {   
@@ -556,13 +506,91 @@ int main(int argc, char** argv)
                                         printf("Sent data to tcproxy\n");
                                     }
                                 }
+                                // If the packet is a heartbeat packet, check if new session ID matches the current session ID
                                 else
                                 {
                                     printf("Heartbeat received from cproxy\n");
+
+                                    int newID = *(int*) receivedPacket.payload;
+
+                                    if (newID == sessionID)
+                                    {
+                                        printf("Client has old sessionID, maintaining current telnet session\n");
+                                    }
+                                    else
+                                    {
+                                        printf("Client has new sessionID, closing connection to telnet daemon\n");
+
+                                        sessionID = newID;
+
+                                        if (close(serverSocketFD) < 0)
+                                        {
+                                            perror("sproxy unable to properly close server socket");
+                                        }
+                                        serverConnected = 0;
+
+                                        printf("Closed connection to telnet daemon\n");
+                                    }
                                 }
 
                                 break;
                         }
+                    }
+                }
+
+                // Break in to outer while loop if server was disconnected
+                if (serverConnected == 0)
+                {
+                    break;
+                }
+
+                // If input is ready on serverSocket, construct a packet and send to client socket
+                if (FD_ISSET(serverSocketFD, &socketSet))
+                {   
+                    int serverBytesRead = recv(serverSocketFD, dataPacket.payload, BUFFER_LEN, 0);
+                    // If bytesRead is 0 or -1, controlled disconnect, disconnect both sockets and
+                    // break into outer while loop
+                    if (serverBytesRead < 0)
+                    {
+                        printf("recv() returned with %i on serverSocketFD\n", serverBytesRead);
+                        
+                        // Close server socket
+                        if (close(serverSocketFD)) // close returns -1 on error
+                        {
+                            perror("sproxy unable to properly close server socket");
+                        }
+                        else
+                        {
+                            printf("sproxy closed connection to server\n");
+                        }
+                        serverConnected = 0;
+
+                        // Close client socket
+                        if (close(clientSocketFD)) // close returns -1 on error
+                        {
+                            perror("sproxy unable to properly close client socket");
+                        }
+                        else
+                        {
+                            printf("sproxy closed connection to client\n");
+                        }
+                        clientConnected = 0;
+
+                        break;
+                    }
+
+                    // Create packet and send to clientSocketFD
+                    dataPacket.length = serverBytesRead;
+                    int bytesToSend = compressPacket(sendBuffer, dataPacket);
+                    int bytesSent = send(clientSocketFD, sendBuffer, bytesToSend, 0);
+                    // Report if there was an error (just for debugging, no need to exit)
+                    if (bytesSent < 0)
+                    {
+                        perror("Unable to send data to cproxy");
+                    }
+                    else
+                    {
+                        printf("Sent data to cproxy\n");
                     }
                 }
             }
