@@ -498,7 +498,7 @@ int main(int argc, char** argv)
                                         }
                                         serverConnected = 0;
                                     }
-                                    else if (ongoingSessionPossible != 0)
+                                    else if (ongoingSessionPossible == 0)
                                     {
                                         printf("Client has new sessionID, however it is impossible that there is a hanging telnet session\nMaintaining current connection to telnet daemon\n");
 
