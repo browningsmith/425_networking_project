@@ -227,6 +227,7 @@ int main(int argc, char** argv)
             
             // accept a new client
             printf("cproxy waiting for new connection...\n");
+            clientAddressLength = sizeof(struct sockaddr); // Should solve INVALID ARGUMENT error
             clientSocketFD = accept(listenSocketFD, &clientAddress, &clientAddressLength);
             if (clientSocketFD < 0) // accept returns -1 on error
             {
