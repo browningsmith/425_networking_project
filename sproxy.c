@@ -331,11 +331,11 @@ int main(int argc, char** argv)
                     // Report if there was an error (just for debugging, no need to exit)
                     if (bytesSent < 0)
                     {
-                        perror("Unable to send heartbeat message to sproxy");
+                        perror("Unable to send heartbeat message to cproxy");
                     }
                     else
                     {
-                        printf("Sent heartbeat to sproxy\n");
+                        printf("Sent heartbeat to cproxy\n");
                     }
                 }
                 // If there was an error with select, this is non recoverable
