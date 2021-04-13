@@ -34,5 +34,14 @@ do extra credit.
 project working?
 As far as we have tested everything should be in working order.
 
+odd behavior:
+Not necessarily a bug, because as far as we can tell, the following is normal behavior:
+If the IP address of the client VM, the machine running cproxy, is removed, but a new IP
+address, or the same IP address, is not added back until after the 3 second timeout,
+cproxy will have already called the connect() function to attempt to connect 
+to sproxy before it has a return IP address to provide.
 
+If this happens, cproxy will hang waiting for the connect() command to return due to a
+timeout error, which can take a long time, but eventually it will try to connect() again
+and resume the session like normal.
 
