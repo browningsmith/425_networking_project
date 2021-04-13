@@ -75,6 +75,7 @@ int compressPacket(void* buffer, struct packet);
 int main(int argc, char** argv)
 {
     int sessionID = 0;
+    int isNewTelnetSession = 0;
     segmentType segmentExpected = PACKET_TYPE;
     int bytesExpected = sizeof(uint32_t); // Size of packet.type
     int bytesRead = 0;
@@ -252,6 +253,7 @@ int main(int argc, char** argv)
             }
 
             serverConnected = 1;
+            isNewTelnetSession = 1;
             printf("sproxy successfully connected to telnet daemon!\n");
         }
 
@@ -473,17 +475,28 @@ int main(int argc, char** argv)
 
                                     if (newID != sessionID)
                                     {
-                                        printf("Client has new sessionID, closing current connection to telnet daemon\n");
+                                        printf("Client has new sessionID\n");
 
                                         sessionID = newID;
 
-                                        if (close(serverSocketFD) < 0)
+                                        if (isNewTelnetSession != 0)
                                         {
-                                            perror("sproxy unable to properly close server socket");
-                                        }
-                                        serverConnected = 0;
+                                            printf("This is already a brand new telnet daemon session, no need to start a new one\n");
 
-                                        printf("Closed connection to telnet daemon\n");
+                                            isNewTelnetSession = 0;
+                                        }
+                                        else
+                                        {
+                                            printf("Closing current connection to telnet daemon\n");
+                                            
+                                            if (close(serverSocketFD) < 0)
+                                            {
+                                                perror("sproxy unable to properly close server socket");
+                                            }
+                                            serverConnected = 0;
+
+                                            printf("Closed connection to telnet daemon\n");
+                                        }
                                     }
                                     else
                                     {
