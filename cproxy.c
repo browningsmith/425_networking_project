@@ -335,7 +335,7 @@ int main(int argc, char** argv)
                         }
                         else
                         {
-                            printf("cproxy closed connection to client\n");
+                            printf("cproxy closed connection to server\n");
                         }
                         serverConnected = 0;
 
