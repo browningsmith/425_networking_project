@@ -3,17 +3,42 @@ Authors:    Keith Smith, Sean Callahan
 Assignment: Mobile TCP Proxy, Milestone 3
 File:       sproxy.c
 Class:      425
-Due Date:   04/12/2021
+Due Date:   04/16/2021
 
 Note:       This is the server part of the program. The program takes 1
-            command line argument: lport (the port to listen for an
-            incoming connection). When cproxy receives a TCP connection on
-            it's listening socket, it establishes another TCP connection
-            with the server socket, at localhost and port 23, the VMs telnet daemon.
-            The program uses select() to wait for
-            data on either the client side or server side, or both, and
-            sends data from the client to the server, or the server to
-            the client, as it comes in.
+            command line argument: the port number to listen for
+            incoming client connections.
+
+            When sproxy receives a tcp connection on its client socket,
+            it it establishes a tcp connection to IP 127.0.0.1 port 23
+
+            The program uses select() to wait for data on either the
+            client side or the server side, or both, to be ready to
+            send. If data is available from the server side, it
+            packages it into an application level packet that is
+            then forwarded on to the client socket, that cproxy will
+            be able to understand.
+
+            If data is available from the client side, it treats this
+            data as a similarly formatted packet, and unpacks the
+            payload data and, if necessary, sends it back to the server.
+
+            Every second, the program sends a "heartbeat" packet to the
+            client socket: a packet whose only data is the current session
+            ID.
+
+            If the data packet received by sproxy is a "heartbeat" packet
+            from cproxy, it examines the session ID contained in the packet.
+            If the session ID is the same as the previously received sessionID
+            sproxy maintains the current connection to the server socket.
+            But if the sessionID is new, it closes the server socket and
+            establishes a brand new session with the telnet daemon
+
+            If sproxy does not receive any data from the client for over
+            3 seconds, it will automatically disconnect the client socket
+            and begin accepting new connections, which will either recover
+            the original session or start a new session based on the
+            incoming session ID from the new client.
 */
 #define _DEFAULT_SOURCE // Needed to use timersub on Windows Subsystem for Linux
 

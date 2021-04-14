@@ -3,18 +3,40 @@ Authors:    Keith Smith, Sean Callahan
 Assignment: Mobile TCP Proxy, Milestone 3
 file:       cproxy.c
 Class:      425
-Due Date:   04/12/2021
+Due Date:   04/16/2021
 
 Note:       This is the client part of the program. The program takes 3
             command line arguments: lport (the port to listen for an
-            incoming connection), and sip and sport (the ip and port to
-            forward the data to). When cproxy receives a TCP connection on
-            it's listening socket, it establishes another TCP connection
-            with the server socket, at the provided sport and sip.
-            The program uses select() to wait for
-            data on either the client side or server side, or both, and
-            sends data from the client to the server, or the server to
-            the client, as it comes in.
+            incoming connection), and sip and sport (the ip and port of
+            the sproxy program).
+
+            When cproxy receives a tcp connection on its client socket,
+            it generates a unique session ID, and then establishes
+            a tcp connection with the device on the provided sport
+            and sip.
+
+            The program uses select() to wait for data on either the
+            client side or the server side, or both, to be ready to
+            send. If data is available from the client side, it
+            packages it into an application level packet that is
+            then forwarded on to the server socket, that sproxy will
+            be able to understand.
+
+            If data is available from the server side, it treats this
+            data as a similarly formatted packet, and unpacks the
+            payload data and sends it back to the client.
+
+            Every second, the program sends a "heartbeat" packet to the
+            server socket: a packet whose only data is the current session
+            ID. If it is a new session ID that sproxy did not have before,
+            a new telnet daemon session will be established by sproxy,
+            otherwise the current session is maintained.
+
+            If cproxy does not receive any data from the server for over
+            3 seconds, it will automatically disconnect the server socket
+            and attempt to reconnect once every second to try to recover 
+            the session.
+            
 */
 #define _DEFAULT_SOURCE // Needed to use timersub on Windows Subsystem for Linux
 
