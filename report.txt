@@ -1,0 +1,47 @@
+Group:      vmgroup8
+Authors:    Keith Smith, Sean Callahan
+Assignment: Mobile TCP Proxy, Milestone 3
+files:      cproxy.c, sproxy.c, README.txt, MakeFile
+Class:      425
+Due Date:   04/16/2021
+
+
+Packet format:
+For the packet we decided since there are multiple fields to fill to use a struct
+to help keep track of the bit offset of each of our variables. Our struct has three
+members: uint32_t type, uint32_t length, and void* payload. the type and length
+compromise our effective header with the type being 0 for a heartbeat message and !=0
+for a data one. The length var is simply the length of the following payload and the
+payload is stored as a pointer to the payload itself.
+
+Protocol between sproxy and cproxy:
+for the message relays with telnet each proxy has methods that pack and unpack messages
+for sending/recieving with the respective telnet session as the packet format is only
+for communication between the proxies. for the heartbeat messages we have those sent out
+every 1 second using select() and when a message is recieved if it has a type == 0 it is
+counted as a heartbeat and the proxy calls gettimeofday to update a global variable of the
+time it last recieved a heartbeat message which is used if select returns 0 to compare
+against the current time (using gettimeofday() again) to see if three seconds have passed
+without recieving a heartbeat. If that is the case it closes the client socket and returns
+to an outer while(1) loop to look for connecting clients again. Once it finds a client again
+it checks the hearbeat payload to see if the sessionID is the same as the last it had to
+decide whether it needs to create a new telnet daemon session or not. 
+
+extra credit:
+Since this assignment took longer to implement than we initial thought we did not 
+do extra credit.
+
+project working?
+As far as we have tested everything should be in working order.
+
+odd behavior:
+Not necessarily a bug, because as far as we can tell, the following is normal behavior:
+If the IP address of the client VM, the machine running cproxy, is removed, but a new IP
+address, or the same IP address, is not added back until after the 3 second timeout,
+cproxy will have already called the connect() function to attempt to connect 
+to sproxy before it has a return IP address to provide.
+
+If this happens, cproxy will hang waiting for the connect() command to return due to a
+timeout error, which can take a long time, but eventually it will try to connect() again
+and resume the session like normal.
+
