@@ -97,6 +97,41 @@ int max(int a, int b);
  *****************************************/
 int compressPacket(void* buffer, struct packet);
 
+/**********************************************************
+ * addToPacket
+ * 
+ * Arguments: void* buffer, struct packet* pck, int n,
+ *            segmentType* currentSegment, int remaining
+ * 
+ * buffer: Buffer containing data to be added to the
+ * packet
+ * 
+ * This function places data from buffer into the pck packet
+ * in the following way: It first reads n bytes from buffer,
+ * and copies them in to the memory pointed to by pck->payload
+ * + index
+ * 
+ * index is calulated as the length of the
+ * currentSegment - remaining
+ * 
+ * If the end of a segment is reached during the runtime
+ * of this function, it copies the data from pck->payload into
+ * the proper segment, and updates currentSegment to be
+ * the next expected segment, unless the last segment read
+ * was actually the packet payload. The function returns the
+ * number of bytes remaining to be read for any segment it
+ * does not finish.
+ * 
+ * If the function returns 0, with currentSegment being set
+ * to PACKET_TYPE, this indicates the end of an entire
+ * packet was read.
+ * 
+ * Otherwise, the data added in pck is unreliable, and should
+ * be passed to subsequent calls to addToPacket to continue
+ * building it out
+ *********************************************************/
+int addToPacket(void* buffer, struct packet* pck, int n, segmentType* currentSegment, int remaining);
+
 int main(int argc, char** argv)
 {
     int sessionID = 0;
@@ -632,4 +667,84 @@ int compressPacket(void* buffer, struct packet pck)
     index += pck.length;
 
     return index; // This should now equal the size of the data in buffer
+}
+
+int addToPacket(void* buffer, struct packet* pck, int n, segmentType* currentSegment, int remaining)
+{
+    int bufferIndex = 0;
+    
+    // As long as there are still bytes to read
+    while (n > 0)
+    {
+        // Calculate payloadIndex
+        int payloadIndex;
+        if ((*currentSegment == PACKET_TYPE) || (*currentSegment == LENGTH))
+        {
+            payloadIndex = sizeof(uint32_t) - remaining;
+        }
+        else
+        {
+            payloadIndex = pck->length - remaining;
+        }
+
+        // Check that payloadIndex is not negative
+        if (payloadIndex < 0)
+        {
+            printf("Error in addToPacket: the given \"remaining\" argument is too high: %i\n", remaining);
+            return remaining;
+        }
+        
+        // If there are more bytes remaining than n, copy n bytes and return
+        if (remaining > n)
+        {
+            memcpy(pck->payload + payloadIndex, buffer + bufferIndex, n);
+            return remaining - n;
+        }
+        else
+        {
+            // Copy remaining bytes
+            memcpy(pck->payload + payloadIndex, buffer + bufferIndex, remaining);
+            bufferIndex += remaining;
+            n -= remaining;
+
+            // Update segment type
+            switch (*currentSegment)
+            {
+                case PACKET_TYPE:
+
+                    // Copy packet type data into pck->type
+                    pck->type = *(uint32_t*) pck->payload;
+
+                    // Change currentSegment to LENGTH
+                    *currentSegment = LENGTH;
+
+                    // Update remaining to sizeof(uint32_t)
+                    remaining = sizeof(uint32_t);
+
+                    break;
+                case LENGTH:
+
+                    // Copy packet length data into pck->length
+                    pck->length = *(uint32_t*) pck->payload;
+
+                    // Change currentSegment to PAYLOAD
+                    *currentSegment = PAYLOAD;
+
+                    // Update remaining to pck->length
+                    remaining = pck->length;
+
+                    break;
+                case PAYLOAD:
+                    
+                    // pck->payload should contain the correct payload now
+
+                    // Change currentSegment to PACKET_TYPE
+                    *currentSegment = PACKET_TYPE;
+
+                    return 0;
+            }
+        }
+    }
+
+    return remaining;
 }
