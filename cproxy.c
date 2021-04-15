@@ -85,16 +85,16 @@ typedef struct {
 } LinkedList;
 
 /**************************************************
- * push
+ * pushTail
  * 
  * Arguments: LinkedList* list, struct packet* pck
  * Returns: void
  * 
  * Creates a new LLNode that points to the
- * given pck, and pushes it on to the head
- * of the given list
+ * given pck, and pushes it on to the end of the
+ * given list
  *************************************************/
-void push(LinkedList* list, struct packet* pck);
+void pushTail(LinkedList* list, struct packet* pck);
 
 /*************************************
  * max
@@ -599,7 +599,7 @@ int main(int argc, char** argv)
     return 0;
 }
 
-void push(LinkedList* list, struct packet* pck)
+void pushTail(LinkedList* list, struct packet* pck)
 {
     LLNode* newNode = malloc(sizeof(LLNode));
     if (newNode == NULL)
@@ -608,9 +608,26 @@ void push(LinkedList* list, struct packet* pck)
         exit(-1);
     }
 
+    // Populate node
     newNode->pck = pck;
-    newNode->next = list->head;
-    list->head = newNode;
+    newNode->next = NULL;
+
+    // If the list is empty, insert at the head
+    if (list->head == NULL)
+    {
+        list->head = newNode;
+        newNode->next = NULL;
+        return;
+    }
+
+    // Insert at the end of the list
+    LLNode* lastNode = list->head;
+    while (lastNode->next != NULL)
+    {
+        lastNode = lastNode->next;
+    }
+
+    lastNode->next = newNode;
 }
 
 int max(int a, int b)
