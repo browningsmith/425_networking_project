@@ -174,6 +174,7 @@ int main(int argc, char** argv)
 {
     int sessionID = 0;
     int isNewTelnetSession = 0;
+    int pauseDaemonData = 0;
     segmentType segmentExpected = PACKET_TYPE;
     int bytesExpected = sizeof(uint32_t); // Size of packet.type
     int bytesRead = 0;
@@ -303,6 +304,7 @@ int main(int argc, char** argv)
             else
             {
                 clientConnected = 1;
+                pauseDaemonData = 1;
                 gettimeofday(&timeLastMessageReceived, NULL);
                 printf("sproxy accepted new connection from client!\n");
             }
@@ -351,6 +353,7 @@ int main(int argc, char** argv)
 
             serverConnected = 1;
             isNewTelnetSession = 1;
+            pauseDaemonData = 0;
             printf("sproxy successfully connected to telnet daemon!\n");
         }
 
@@ -538,6 +541,7 @@ int main(int argc, char** argv)
                                     printf("This is already a brand new telnet daemon session, no need to start a new one\n");
 
                                     isNewTelnetSession = 0;
+                                    pauseDaemonData = 0;
                                 }
                                 else
                                 {
@@ -555,6 +559,7 @@ int main(int argc, char** argv)
                             else
                             {
                                 printf("Client has old sessionID, maintaining current telnet session\n");
+                                pauseDaemonData = 0;
                             }
                         }
                     }
@@ -569,6 +574,12 @@ int main(int argc, char** argv)
                 // If input is ready on serverSocket, construct a packet and send to client socket
                 if (FD_ISSET(serverSocketFD, &socketSet))
                 {   
+                    // If it is indicated that daemon data should be paused, don't do anything
+                    if (pauseDaemonData != 0)
+                    {
+                        continue;
+                    }
+                    
                     int serverBytesRead = recv(serverSocketFD, dataPacket.payload, BUFFER_LEN, 0);
                     // If bytesRead is 0 or -1, controlled disconnect, disconnect both sockets and
                     // break into outer while loop
