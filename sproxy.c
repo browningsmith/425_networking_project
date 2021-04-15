@@ -72,6 +72,44 @@ struct packet {
     void* payload;      // either int sessionID or buffer
 };
 
+typedef struct LLNode_struct {
+
+    struct LLNode_struct* next;
+    struct packet* pck;
+
+} LLNode;
+
+typedef struct {
+
+    LLNode* head;
+
+} LinkedList;
+
+/**************************************************
+ * pushTail
+ * 
+ * Arguments: LinkedList* list, struct packet* pck
+ * Returns: void
+ * 
+ * Creates a new LLNode that points to the
+ * given pck, and pushes it on to the end of the
+ * given list
+ *************************************************/
+void pushTail(LinkedList* list, struct packet* pck);
+
+/**************************************************
+ * pop
+ * 
+ * Arguments: LinkedList* list
+ * Returns: packet*
+ * 
+ * Pop's off the head of the linked list and
+ * returns the packet contained in it
+ * 
+ * Returns NULL if the list was empty
+ *************************************************/
+struct packet* pop(LinkedList* list);
+
 /*************************************
  * max
  * 
@@ -592,6 +630,52 @@ int main(int argc, char** argv)
     free(fromClientBuffer);
 
     return 0;
+}
+
+void pushTail(LinkedList* list, struct packet* pck)
+{
+    LLNode* newNode = malloc(sizeof(LLNode));
+    if (newNode == NULL)
+    {
+        perror("Unable to allocate space for new linked list node");
+        exit(-1);
+    }
+
+    // Populate node
+    newNode->pck = pck;
+    newNode->next = NULL;
+
+    // If the list is empty, insert at the head
+    if (list->head == NULL)
+    {
+        list->head = newNode;
+        return;
+    }
+
+    // Insert at the end of the list
+    LLNode* lastNode = list->head;
+    while (lastNode->next != NULL)
+    {
+        lastNode = lastNode->next;
+    }
+
+    lastNode->next = newNode;
+}
+
+struct packet* pop(LinkedList* list)
+{
+    if (list->head == NULL)
+    {
+        return NULL;
+    }
+
+    LLNode* poppedNode = list->head;
+    list->head = poppedNode->next;
+
+    struct packet* pck = poppedNode->pck;
+    free(poppedNode);
+
+    return pck;
 }
 
 int max(int a, int b)
