@@ -58,6 +58,8 @@ Note:       This is the client part of the program. The program takes 3
 typedef enum {
 
     PACKET_TYPE,
+    SEQ,
+    ACK,
     LENGTH,
     PAYLOAD,
 
@@ -66,6 +68,8 @@ typedef enum {
 struct packet {
     // header
     uint32_t type;      // 0 = heartbeat, !0 = data
+    uint32_t seqN;      // Sequence number
+    uint32_t ackN;      // Ack number (the seqN of the next expected packet)
     uint32_t length;    // length of payload
     // payload
     void* payload;      // either int sessionID or buffer
@@ -250,7 +254,7 @@ int main(int argc, char** argv)
     }
 
     // Attempt to allocate space for toServerBuffer
-    toServerBuffer = malloc(2*sizeof(uint32_t) + BUFFER_LEN);
+    toServerBuffer = malloc(4*sizeof(uint32_t) + BUFFER_LEN);
     if (toServerBuffer == NULL)
     {
         perror("Unable to allocate space for the toServerBuffer");
@@ -689,6 +693,14 @@ int compressPacket(void* buffer, struct packet pck)
     *(uint32_t*) (buffer+index) = pck.type;
     index += sizeof(uint32_t);
 
+    // Write in seqN
+    *(uint32_t*) (buffer+index) = pck.seqN;
+    index += sizeof(uint32_t);
+
+    // Write in ackN
+    *(uint32_t*) (buffer+index) = pck.ackN;
+    index += sizeof(uint32_t);
+
     // Write in payload length
     *(uint32_t*) (buffer+index) = pck.length;
     index += sizeof(uint32_t);
@@ -746,13 +758,37 @@ int addToPacket(void* buffer, struct packet* pck, int n, segmentType* currentSeg
                     // Copy packet type data into pck->type
                     pck->type = *(uint32_t*) pck->payload;
 
+                    // Change currentSegment to SEQ
+                    *currentSegment = SEQ;
+
+                    // Update remaining to sizeof(uint32_t)
+                    remaining = sizeof(uint32_t);
+
+                    break;
+                case SEQ:
+
+                    // Copy packet seqN data into pck->seqN
+                    pck->seqN = *(uint32_t*) pck->payload;
+
+                    // Change currentSegment to ACK
+                    *currentSegment = ACK;
+
+                    // Update remaining to sizeof(uint32_t)
+                    remaining = sizeof(uint32_t);
+
+                    break;
+                case ACK:
+
+                    // Copy packet ackN data into pck->ackN
+                    pck->ackN = *(uint32_t*) pck->payload;
+
                     // Change currentSegment to LENGTH
                     *currentSegment = LENGTH;
 
                     // Update remaining to sizeof(uint32_t)
                     remaining = sizeof(uint32_t);
 
-                    break;
+                    break;   
                 case LENGTH:
 
                     // Copy packet length data into pck->length
