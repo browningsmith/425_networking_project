@@ -156,7 +156,6 @@ int main(int argc, char** argv)
     socklen_t clientAddressLength;
     void* toClientBuffer = NULL;
     void* fromClientBuffer = NULL;
-    int fromClientIndex = 0;
 
     // Get port number to listen on from command line
     if (argc < 2)
@@ -324,9 +323,6 @@ int main(int argc, char** argv)
             // Reset segmentExpected to PACKET_TYPE and bytesExpected to sizeof(uint32_t)
             segmentExpected = PACKET_TYPE;
             bytesExpected = sizeof(uint32_t);
-
-            // Set fromClientIndex to 0
-            fromClientIndex = 0;
             
             // Set nextTimeout to current time to ensure the first message sent is a heartbeat
             gettimeofday(&nextTimeout, NULL);
@@ -432,8 +428,8 @@ int main(int argc, char** argv)
                     // Update timeLastMessageReceived
                     gettimeofday(&timeLastMessageReceived, NULL);
                     
-                    // Try to read bytesExpected into fromClientBuffer, starting at fromClientIndex
-                    bytesRead = recv(clientSocketFD, fromClientBuffer + fromClientIndex, bytesExpected, 0);
+                    // Read bytesExpected into fromClientBuffer
+                    bytesRead = recv(clientSocketFD, fromClientBuffer, bytesExpected, 0);
 
                     // If bytesRead is 0 or -1, controlled disconnect, disconnect both sockets and
                     // break into outer while loop
@@ -466,104 +462,62 @@ int main(int argc, char** argv)
                         break;
                     }
 
-                    // Update fromClientIndex
-                    fromClientIndex += bytesRead;
+                    // add data to packet
+                    bytesExpected = addToPacket(fromClientBuffer, &receivedPacket, bytesRead, &segmentExpected, bytesExpected);
 
-                    // Update bytesExpected
-                    bytesExpected -= bytesRead;
-
-                    // If bytesExpected is 0, we just finished reading a packet segment
+                    // If bytesExpected is 0, we just finished reading a whole packet
                     if (bytesExpected == 0)
-                    {
-                        // Reset fromClientIndex
-                        fromClientIndex = 0;
-                        
-                        switch (segmentExpected)
+                    {           
+                        // Update bytesExpected to sizeof(uint32_t)
+                        bytesExpected = sizeof(uint32_t);
+
+                        // If the packet is a data packet, send the payload to server
+                        if (receivedPacket.type != 0)
                         {
-                            case PACKET_TYPE:
+                            int bytesSent = send(serverSocketFD, receivedPacket.payload, receivedPacket.length, 0);
 
-                                // Copy packet type data into receivedPacket.type
-                                receivedPacket.type = *(uint32_t*) fromClientBuffer;
+                            // Report if there was an error (just for debugging, no need to exit)
+                            if (bytesSent < 0)
+                            {
+                                perror("Unable to send data to cproxy");
+                            }
+                        }
+                        // If the packet is a heartbeat packet, check if new session ID matches the current session ID
+                        else
+                        {
+                            printf("Heartbeat received from cproxy\n");
 
-                                // Change segmentExpected to LENGTH
-                                segmentExpected = LENGTH;
+                            int newID = *(int*) receivedPacket.payload;
 
-                                // Update bytesExpected to sizeof(uint32_t)
-                                bytesExpected = sizeof(uint32_t);
+                            if (newID != sessionID)
+                            {
+                                printf("Client has new sessionID\n");
 
-                                break;
-                            case LENGTH:
+                                sessionID = newID;
 
-                                // Copy packet length data into receivedPacket.length
-                                receivedPacket.length = *(uint32_t*) fromClientBuffer;
-
-                                // Change segmentExpected to PAYLOAD
-                                segmentExpected = PAYLOAD;
-
-                                // Update bytesExpected to receivedPacket.length
-                                bytesExpected = receivedPacket.length;
-
-                                break;
-                            case PAYLOAD:
-                                
-                                // Copy packet payload data into receivedPacket.payload
-                                memcpy(receivedPacket.payload, fromClientBuffer, receivedPacket.length);
-
-                                // Change segmentExpected to PACKET_TYPE
-                                segmentExpected = PACKET_TYPE;
-
-                                // Update bytesExpected to sizeof(uint32_t)
-                                bytesExpected = sizeof(uint32_t);
-
-                                // If the packet is a data packet, send the payload to server
-                                if (receivedPacket.type != 0)
+                                if (isNewTelnetSession != 0)
                                 {
-                                    int bytesSent = send(serverSocketFD, receivedPacket.payload, receivedPacket.length, 0);
+                                    printf("This is already a brand new telnet daemon session, no need to start a new one\n");
 
-                                    // Report if there was an error (just for debugging, no need to exit)
-                                    if (bytesSent < 0)
-                                    {
-                                        perror("Unable to send data to cproxy");
-                                    }
+                                    isNewTelnetSession = 0;
                                 }
-                                // If the packet is a heartbeat packet, check if new session ID matches the current session ID
                                 else
                                 {
-                                    printf("Heartbeat received from cproxy\n");
-
-                                    int newID = *(int*) receivedPacket.payload;
-
-                                    if (newID != sessionID)
+                                    printf("Closing current connection to telnet daemon\n");
+                                    
+                                    if (close(serverSocketFD) < 0)
                                     {
-                                        printf("Client has new sessionID\n");
-
-                                        sessionID = newID;
-
-                                        if (isNewTelnetSession != 0)
-                                        {
-                                            printf("This is already a brand new telnet daemon session, no need to start a new one\n");
-
-                                            isNewTelnetSession = 0;
-                                        }
-                                        else
-                                        {
-                                            printf("Closing current connection to telnet daemon\n");
-                                            
-                                            if (close(serverSocketFD) < 0)
-                                            {
-                                                perror("sproxy unable to properly close server socket");
-                                            }
-                                            serverConnected = 0;
-
-                                            printf("Closed connection to telnet daemon\n");
-                                        }
+                                        perror("sproxy unable to properly close server socket");
                                     }
-                                    else
-                                    {
-                                        printf("Client has old sessionID, maintaining current telnet session\n");
-                                    }
+                                    serverConnected = 0;
+
+                                    printf("Closed connection to telnet daemon\n");
                                 }
-                                break;
+                            }
+                            else
+                            {
+                                printf("Client has old sessionID, maintaining current telnet session\n");
+                            }
                         }
                     }
                 }
