@@ -71,6 +71,31 @@ struct packet {
     void* payload;      // either int sessionID or buffer
 };
 
+typedef struct LLNode_struct {
+
+    struct LLNode_struct* next;
+    struct packet* pck;
+
+} LLNode;
+
+typedef struct {
+
+    LLNode* head;
+
+} LinkedList;
+
+/**************************************************
+ * push
+ * 
+ * Arguments: LinkedList* list, struct packet* pck
+ * Returns: void
+ * 
+ * Creates a new LLNode that points to the
+ * given pck, and pushes it on to the head
+ * of the given list
+ *************************************************/
+void push(LinkedList* list, struct packet* pck);
+
 /*************************************
  * max
  * 
@@ -574,6 +599,20 @@ int main(int argc, char** argv)
     return 0;
 }
 
+void push(LinkedList* list, struct packet* pck)
+{
+    LLNode* newNode = malloc(sizeof(LLNode));
+    if (newNode == NULL)
+    {
+        perror("Unable to allocate space for new linked list node");
+        exit(-1);
+    }
+
+    newNode->pck = pck;
+    newNode->next = list->head;
+    list->head = newNode;
+}
+
 int max(int a, int b)
 {
     if (a > b)
@@ -695,3 +734,5 @@ int addToPacket(void* buffer, struct packet* pck, int n, segmentType* currentSeg
 
     return remaining;
 }
+
+
