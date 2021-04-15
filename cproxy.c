@@ -96,6 +96,19 @@ typedef struct {
  *************************************************/
 void pushTail(LinkedList* list, struct packet* pck);
 
+/**************************************************
+ * pop
+ * 
+ * Arguments: LinkedList* list
+ * Returns: packet*
+ * 
+ * Pop's off the head of the linked list and
+ * returns the packet contained in it
+ * 
+ * Returns NULL if the list was empty
+ *************************************************/
+struct packet* pop(LinkedList* list);
+
 /*************************************
  * max
  * 
@@ -616,7 +629,6 @@ void pushTail(LinkedList* list, struct packet* pck)
     if (list->head == NULL)
     {
         list->head = newNode;
-        newNode->next = NULL;
         return;
     }
 
@@ -628,6 +640,22 @@ void pushTail(LinkedList* list, struct packet* pck)
     }
 
     lastNode->next = newNode;
+}
+
+struct packet* pop(LinkedList* list)
+{
+    if (list->head == NULL)
+    {
+        return NULL;
+    }
+
+    LLNode* poppedNode = list->head;
+    list->head = poppedNode->next;
+
+    struct packet* pck = poppedNode->pck;
+    free(poppedNode);
+
+    return pck;
 }
 
 int max(int a, int b)
