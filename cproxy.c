@@ -166,7 +166,6 @@ int main(int argc, char** argv)
     socklen_t clientAddressLength;
     void* toServerBuffer = NULL;
     void* fromServerBuffer = NULL;
-    int fromServerIndex = 0;
 
     // Get listenPort and serverPort from command line
     if (argc < 4)
@@ -343,9 +342,6 @@ int main(int argc, char** argv)
             segmentExpected = PACKET_TYPE;
             bytesExpected = sizeof(uint32_t);
 
-            // Set fromServerIndex to 0
-            fromServerIndex = 0;
-
             // Set nextTimeout to currentTime to ensure the first message sent is a heartbeat
             gettimeofday(&nextTimeout, NULL);
 
@@ -450,8 +446,8 @@ int main(int argc, char** argv)
                     // Update timeLastMessageReceived
                     gettimeofday(&timeLastMessageReceived, NULL);
                     
-                    // Try to read bytesExpected into fromServerBuffer, starting at fromServerIndex
-                    bytesRead = recv(serverSocketFD, fromServerBuffer + fromServerIndex, bytesExpected, 0);
+                    // Read bytesExpected into fromServerBuffer
+                    bytesRead = recv(serverSocketFD, fromServerBuffer, bytesExpected, 0);
 
                     // If bytesRead is 0 or -1, controlled disconnect, disconnect both sockets and
                     // break into outer while loop
@@ -484,73 +480,31 @@ int main(int argc, char** argv)
                         break;
                     }
 
-                    // Update fromServerIndex
-                    fromServerIndex += bytesRead;
+                    // Add data to packet
+                    bytesExpected = addToPacket(fromServerBuffer, &receivedPacket, bytesRead, &segmentExpected, bytesExpected);
 
-                    // Update bytesExpected
-                    bytesExpected -= bytesRead;
-
-                    // If bytesExpected is 0, we just finished reading a packet segment
+                    // If bytesExpected is 0, we just finished reading a whole packet
                     if (bytesExpected == 0)
                     {
-                        // Reset fromServerIndex
-                        fromServerIndex = 0;
-                        
-                        switch (segmentExpected)
+                        // Update bytesExpected to sizeof(uint32_t)
+                        bytesExpected = sizeof(uint32_t);
+
+                        // If the packet is a data packet, send the payload to client
+                        if (receivedPacket.type != 0)
                         {
-                            case PACKET_TYPE:
+                            int bytesSent = send(clientSocketFD, receivedPacket.payload, receivedPacket.length, 0);
 
-                                // Copy packet type data into receivedPacket.type
-                                receivedPacket.type = *(uint32_t*) fromServerBuffer;
-
-                                // Change segmentExpected to LENGTH
-                                segmentExpected = LENGTH;
-
-                                // Update bytesExpected to sizeof(uint32_t)
-                                bytesExpected = sizeof(uint32_t);
-
-                                break;
-                            case LENGTH:
-
-                                // Copy packet length data into receivedPacket.length
-                                receivedPacket.length = *(uint32_t*) fromServerBuffer;
-
-                                // Change segmentExpected to PAYLOAD
-                                segmentExpected = PAYLOAD;
-
-                                // Update bytesExpected to receivedPacket.length
-                                bytesExpected = receivedPacket.length;
-
-                                break;
-                            case PAYLOAD:
-                                
-                                // Copy packet payload data into receivedPacket.payload
-                                memcpy(receivedPacket.payload, fromServerBuffer, receivedPacket.length);
-
-                                // Change segmentExpected to PACKET_TYPE
-                                segmentExpected = PACKET_TYPE;
-
-                                // Update bytesExpected to sizeof(uint32_t)
-                                bytesExpected = sizeof(uint32_t);
-
-                                // If the packet is a data packet, send the payload to client
-                                if (receivedPacket.type != 0)
-                                {
-                                    int bytesSent = send(clientSocketFD, receivedPacket.payload, receivedPacket.length, 0);
-
-                                    // Report if there was an error (just for debugging, no need to exit)
-                                    if (bytesSent < 0)
-                                    {
-                                        perror("Unable to send data to telnet");
-                                    }
-                                }
-                                else
-                                {
-                                    printf("Heartbeat received from sproxy\n");
-                                }
-
-                                break;
+                            // Report if there was an error (just for debugging, no need to exit)
+                            if (bytesSent < 0)
+                            {
+                                perror("Unable to send data to telnet");
+                            }
                         }
+                        else
+                        {
+                            printf("Heartbeat received from sproxy\n");
+                        }
+                        
                     }
                 }
 
