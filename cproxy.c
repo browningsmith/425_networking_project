@@ -108,6 +108,41 @@ int generateID(int oldID);
  *****************************************/
 int compressPacket(void* buffer, struct packet);
 
+/**********************************************************
+ * addToPacket
+ * 
+ * Arguments: void* buffer, struct packet* pck, int n,
+ *            segmentType* currentSegment, int remaining
+ * 
+ * buffer: Buffer containing data to be added to the
+ * packet
+ * 
+ * This function places data from buffer into the pck packet
+ * in the following way: It first reads n bytes from buffer,
+ * and copies them in to the memory pointed to by pck->payload
+ * + index
+ * 
+ * index is calulated as the length of the
+ * currentSegment - remaining
+ * 
+ * If the end of a segment is reached during the runtime
+ * of this function, it copies the data from pck->payload into
+ * the proper segment, and updates currentSegment to be
+ * the next expected segment, unless the last segment read
+ * was actually the packet payload. The function returns the
+ * number of bytes remaining to be read for any segment it
+ * does not finish.
+ * 
+ * If the function returns 0, with currentSegment being set
+ * to PACKET_TYPE, this indicates the end of an entire
+ * packet was read.
+ * 
+ * Otherwise, the data added in pck is unreliable, and should
+ * be passed to subsequent calls to addToPacket to continue
+ * building it out
+ *********************************************************/
+int addToPacket(void* buffer, struct packet* pck, int n, segmentType* currentSegment, int remaining);
+
 int main(int argc, char** argv)
 {
     int sessionID = 0;
