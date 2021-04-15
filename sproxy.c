@@ -270,7 +270,7 @@ int main(int argc, char** argv)
             }
         }
 
-        if (!serverConnected)
+        if (serverConnected == 0)
         {
             printf("server is not connected. Connecting...\n");
             
