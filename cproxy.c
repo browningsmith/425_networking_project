@@ -129,9 +129,9 @@ int main(int argc, char** argv)
     struct sockaddr_in listenAddress, serverAddress;
     struct sockaddr clientAddress;
     socklen_t clientAddressLength;
-    void* sendBuffer = NULL;
-    void* receiveBuffer = NULL;
-    int receiveBufferIndex = 0;
+    void* toServerBuffer = NULL;
+    void* fromServerBuffer = NULL;
+    int fromServerIndex = 0;
 
     // Get listenPort and serverPort from command line
     if (argc < 4)
@@ -177,19 +177,19 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    // Attempt to allocate space for sendBuffer
-    sendBuffer = malloc(2*sizeof(uint32_t) + BUFFER_LEN);
-    if (sendBuffer == NULL)
+    // Attempt to allocate space for toServerBuffer
+    toServerBuffer = malloc(2*sizeof(uint32_t) + BUFFER_LEN);
+    if (toServerBuffer == NULL)
     {
-        perror("Unable to allocate space for the sendBuffer");
+        perror("Unable to allocate space for the toServerBuffer");
         return -1;
     }
 
-    // Attempt to allocate space for receiveBuffer
-    receiveBuffer = malloc(BUFFER_LEN);
-    if (receiveBuffer == NULL)
+    // Attempt to allocate space for fromServerBuffer
+    fromServerBuffer = malloc(BUFFER_LEN);
+    if (fromServerBuffer == NULL)
     {
-        perror("Unable to allocate space for the sendBuffer");
+        perror("Unable to allocate space for the fromServerBuffer");
         return -1;
     }
 
@@ -308,8 +308,8 @@ int main(int argc, char** argv)
             segmentExpected = PACKET_TYPE;
             bytesExpected = sizeof(uint32_t);
 
-            // Set receiveBufferIndex to 0
-            receiveBufferIndex = 0;
+            // Set fromServerIndex to 0
+            fromServerIndex = 0;
 
             // Set nextTimeout to currentTime to ensure the first message sent is a heartbeat
             gettimeofday(&nextTimeout, NULL);
@@ -368,8 +368,8 @@ int main(int argc, char** argv)
                     nextTimeout.tv_sec += 1;
 
                     // Compress and send heartbeat packet
-                    int bytesToSend = compressPacket(sendBuffer, heartbeatPacket);
-                    int bytesSent = send(serverSocketFD, sendBuffer, bytesToSend, 0);
+                    int bytesToSend = compressPacket(toServerBuffer, heartbeatPacket);
+                    int bytesSent = send(serverSocketFD, toServerBuffer, bytesToSend, 0);
 
                     // Report if there was an error (just for debugging, no need to exit)
                     if (bytesSent < 0)
@@ -415,8 +415,8 @@ int main(int argc, char** argv)
                     // Update timeLastMessageReceived
                     gettimeofday(&timeLastMessageReceived, NULL);
                     
-                    // Try to read bytesExpected into receiveBuffer, starting at receiveBufferIndex
-                    bytesRead = recv(serverSocketFD, receiveBuffer + receiveBufferIndex, bytesExpected, 0);
+                    // Try to read bytesExpected into fromServerBuffer, starting at fromServerIndex
+                    bytesRead = recv(serverSocketFD, fromServerBuffer + fromServerIndex, bytesExpected, 0);
 
                     // If bytesRead is 0 or -1, controlled disconnect, disconnect both sockets and
                     // break into outer while loop
@@ -449,8 +449,8 @@ int main(int argc, char** argv)
                         break;
                     }
 
-                    // Update receiveBufferIndex
-                    receiveBufferIndex += bytesRead;
+                    // Update fromServerIndex
+                    fromServerIndex += bytesRead;
 
                     // Update bytesExpected
                     bytesExpected -= bytesRead;
@@ -458,15 +458,15 @@ int main(int argc, char** argv)
                     // If bytesExpected is 0, we just finished reading a packet segment
                     if (bytesExpected == 0)
                     {
-                        // Reset receiveBufferIndex
-                        receiveBufferIndex = 0;
+                        // Reset fromServerIndex
+                        fromServerIndex = 0;
                         
                         switch (segmentExpected)
                         {
                             case PACKET_TYPE:
 
                                 // Copy packet type data into receivedPacket.type
-                                receivedPacket.type = *(uint32_t*) receiveBuffer;
+                                receivedPacket.type = *(uint32_t*) fromServerBuffer;
 
                                 // Change segmentExpected to LENGTH
                                 segmentExpected = LENGTH;
@@ -478,7 +478,7 @@ int main(int argc, char** argv)
                             case LENGTH:
 
                                 // Copy packet length data into receivedPacket.length
-                                receivedPacket.length = *(uint32_t*) receiveBuffer;
+                                receivedPacket.length = *(uint32_t*) fromServerBuffer;
 
                                 // Change segmentExpected to PAYLOAD
                                 segmentExpected = PAYLOAD;
@@ -490,7 +490,7 @@ int main(int argc, char** argv)
                             case PAYLOAD:
                                 
                                 // Copy packet payload data into receivedPacket.payload
-                                memcpy(receivedPacket.payload, receiveBuffer, receivedPacket.length);
+                                memcpy(receivedPacket.payload, fromServerBuffer, receivedPacket.length);
 
                                 // Change segmentExpected to PACKET_TYPE
                                 segmentExpected = PACKET_TYPE;
@@ -556,8 +556,8 @@ int main(int argc, char** argv)
 
                     // Create packet and send to serverSocketFD
                     dataPacket.length = clientBytesRead;
-                    int bytesToSend = compressPacket(sendBuffer, dataPacket);
-                    int bytesSent = send(serverSocketFD, sendBuffer, bytesToSend, 0);
+                    int bytesToSend = compressPacket(toServerBuffer, dataPacket);
+                    int bytesSent = send(serverSocketFD, toServerBuffer, bytesToSend, 0);
                     // Report if there was an error (just for debugging, no need to exit)
                     if (bytesSent < 0)
                     {
@@ -579,8 +579,8 @@ int main(int argc, char** argv)
     // free buffers
     free(dataPacket.payload);
     free(receivedPacket.payload);
-    free(sendBuffer);
-    free(receiveBuffer);
+    free(toServerBuffer);
+    free(fromServerBuffer);
 
     return 0;
 }
