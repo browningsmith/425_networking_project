@@ -257,19 +257,6 @@ int main(int argc, char** argv)
     heartbeatPacket.length = (uint32_t) sizeof(int);
     heartbeatPacket.payload = (void*) &sessionID;
 
-    // defining the data packet
-    struct packet dataPacket;
-    dataPacket.type = (uint32_t) 1;
-    dataPacket.length = (uint32_t) 0;
-    
-    // Attempt to allocate space for dataPacket payload
-    dataPacket.payload = malloc(BUFFER_LEN);
-    if (dataPacket.payload == NULL)
-    {
-        perror("Unable to allocate space to store payload of dataPacket");
-        return -1;
-    }
-
     // Create the receivedPacket
     struct packet* receivedPacket = newPacket(0, 0, 0, 0);
 
@@ -577,12 +564,18 @@ int main(int argc, char** argv)
                 // If input is ready on clientSocket, construct packet and send to serverSocket
                 if (FD_ISSET(clientSocketFD, &socketSet))
                 {   
-                    int clientBytesRead = recv(clientSocketFD, dataPacket.payload, BUFFER_LEN, 0);
+                    // Create new packet
+                    struct packet* dataPacket = newPacket(1, seqN, ackN, 0);
+                    
+                    int clientBytesRead = recv(clientSocketFD, dataPacket->payload, BUFFER_LEN, 0);
                     // If bytesRead is 0 or -1, controlled disconnect, disconnect both sockets and
                     // break into outer while loop
                     if (clientBytesRead <= 0)
                     {
                         printf("recv() returned with %i on clientSocketFD\n", clientBytesRead);
+
+                        // Delete packet
+                        deletePacket(dataPacket);
                         
                         // Close server socket
                         if (close(serverSocketFD)) // close returns -1 on error
@@ -608,16 +601,19 @@ int main(int argc, char** argv)
 
                         break;
                     }
+                    dataPacket->length = clientBytesRead;
 
-                    // Create packet and send to serverSocketFD
-                    dataPacket.length = clientBytesRead;
-                    int bytesToSend = compressPacket(toServerBuffer, dataPacket);
+                    // send to serverSocketFD
+                    int bytesToSend = compressPacket(toServerBuffer, *dataPacket);
                     int bytesSent = send(serverSocketFD, toServerBuffer, bytesToSend, 0);
                     // Report if there was an error (just for debugging, no need to exit)
                     if (bytesSent < 0)
                     {
                         perror("Unable to send data to sproxy");
                     }
+                    seqN++;
+
+                    deletePacket(dataPacket);
                 }
             }
         }
@@ -633,7 +629,6 @@ int main(int argc, char** argv)
 
     // free buffers
     deletePacket(receivedPacket);
-    free(dataPacket.payload);
     free(toServerBuffer);
     free(fromServerBuffer);
 
