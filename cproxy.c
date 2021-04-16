@@ -114,6 +114,17 @@ void pushTail(LinkedList* list, struct packet* pck);
 struct packet* pop(LinkedList* list);
 
 /**************************************************
+ * clearAckdPackets
+ * 
+ * Arguments: LinkedList* list, uint32_t ackN
+ * Returns: void
+ * 
+ * Deletes all packets in the linked list that
+ * have a seqN less than ackN
+ *************************************************/
+void clearAckdPackets(LinkedList* list, uint32_t ackN);
+
+/**************************************************
  * clearList
  * 
  * Arguments: LinkedList* list
@@ -701,6 +712,20 @@ struct packet* pop(LinkedList* list)
     free(poppedNode);
 
     return pck;
+}
+
+void clearAckdPackets(LinkedList* list, uint32_t ackN)
+{
+    while (list->head != NULL)
+    {
+        if (list->head->pck->seqN >= ackN)
+        {
+            return;
+        }
+
+        struct packet* poppedPacket = pop(list);
+        deletePacket(poppedPacket);
+    }
 }
 
 void clearList(LinkedList* list)
