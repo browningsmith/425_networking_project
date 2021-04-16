@@ -741,7 +741,7 @@ int addToPacket(void* buffer, struct packet* pck, int n, segmentType* currentSeg
     {
         // Calculate payloadIndex
         int payloadIndex;
-        if ((*currentSegment == PACKET_TYPE) || (*currentSegment == LENGTH))
+        if (*currentSegment != PAYLOAD)
         {
             payloadIndex = sizeof(uint32_t) - remaining;
         }
