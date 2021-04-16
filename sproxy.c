@@ -531,12 +531,23 @@ int main(int argc, char** argv)
                         // If the packet is a data packet, send the payload to server
                         if (receivedPacket->type != 0)
                         {
-                            int bytesSent = send(serverSocketFD, receivedPacket->payload, receivedPacket->length, 0);
-
-                            // Report if there was an error (just for debugging, no need to exit)
-                            if (bytesSent < 0)
+                            printf("Data packet received seqN %i ackN %i\n", receivedPacket->seqN, receivedPacket->ackN);
+                            
+                            if (receivedPacket->seqN == ackN)
                             {
-                                perror("Unable to send data to cproxy");
+                                int bytesSent = send(serverSocketFD, receivedPacket->payload, receivedPacket->length, 0);
+
+                                // Report if there was an error (just for debugging, no need to exit)
+                                if (bytesSent < 0)
+                                {
+                                    perror("Unable to send data to cproxy");
+                                }
+
+                                ackN++;
+                            }
+                            else
+                            {
+                                printf("Data's seqN %i does not match ackN %i. Discarding\n", receivedPacket->seqN, ackN);
                             }
                         }
                         // If the packet is a heartbeat packet, check if new session ID matches the current session ID
@@ -646,6 +657,7 @@ int main(int argc, char** argv)
                         perror("Unable to send data to cproxy");
                     }
                     seqN++;
+                    printf("Data packet sent with seqN %i ackN %i\n", dataPacket->seqN, dataPacket->ackN);
 
                     deletePacket(dataPacket);
                 }

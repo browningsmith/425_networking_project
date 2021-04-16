@@ -542,15 +542,26 @@ int main(int argc, char** argv)
                         // Update bytesExpected to sizeof(uint32_t)
                         bytesExpected = sizeof(uint32_t);
 
-                        // If the packet is a data packet, send the payload to client
+                        // If the packet is a data packet
                         if (receivedPacket->type != 0)
                         {
-                            int bytesSent = send(clientSocketFD, receivedPacket->payload, receivedPacket->length, 0);
-
-                            // Report if there was an error (just for debugging, no need to exit)
-                            if (bytesSent < 0)
+                            printf("Data packet received seqN %i ackN %i\n", receivedPacket->seqN, receivedPacket->ackN);
+                            
+                            if (receivedPacket->seqN == ackN)
                             {
-                                perror("Unable to send data to telnet");
+                                int bytesSent = send(clientSocketFD, receivedPacket->payload, receivedPacket->length, 0);
+
+                                // Report if there was an error (just for debugging, no need to exit)
+                                if (bytesSent < 0)
+                                {
+                                    perror("Unable to send data to telnet");
+                                }
+
+                                ackN++;
+                            }
+                            else
+                            {
+                                printf("Data's seqN %i does not match ackN %i. Discarding\n", receivedPacket->seqN, ackN);
                             }
                         }
                         else
@@ -612,6 +623,7 @@ int main(int argc, char** argv)
                         perror("Unable to send data to sproxy");
                     }
                     seqN++;
+                    printf("Data packet sent with seqN %i ackN %i\n", dataPacket->seqN, dataPacket->ackN);
 
                     deletePacket(dataPacket);
                 }
