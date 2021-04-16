@@ -341,11 +341,12 @@ int main(int argc, char** argv)
             }
             else
             {
+                printf("cproxy accepted new connection from client!\n");
                 clientConnected = 1;
+                clearList(&unAckdPackets);
                 sessionID = generateID(sessionID);
                 seqN = 0;
                 ackN = 0;
-                printf("cproxy accepted new connection from client!\n");
             }
         }
 

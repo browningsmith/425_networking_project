@@ -377,6 +377,7 @@ int main(int argc, char** argv)
 
             serverConnected = 1;
             isNewTelnetSession = 1;
+            clearList(&unAckdPackets);
             pauseDaemonData = 0;
             printf("sproxy successfully connected to telnet daemon!\n");
         }
