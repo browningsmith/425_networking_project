@@ -668,9 +668,8 @@ int main(int argc, char** argv)
                         perror("Unable to send data to cproxy");
                     }
                     seqN++;
+                    pushTail(&unAckdPackets, dataPacket);
                     printf("Data packet sent with seqN %i ackN %i\n", dataPacket->seqN, dataPacket->ackN);
-
-                    deletePacket(dataPacket);
                 }
             }
         }
