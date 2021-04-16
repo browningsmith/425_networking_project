@@ -347,7 +347,7 @@ int main(int argc, char** argv)
                 clientConnected = 1;
                 sessionID = generateID(sessionID);
                 seqN = 0;
-                ackN = 1;
+                ackN = 0;
                 printf("cproxy accepted new connection from client!\n");
             }
         }

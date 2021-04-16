@@ -565,7 +565,7 @@ int main(int argc, char** argv)
 
                                 sessionID = newID;
                                 seqN = receivedPacket->ackN;
-                                ackN = receivedPacket->seqN + 1;
+                                ackN = receivedPacket->seqN;
 
                                 if (isNewTelnetSession != 0)
                                 {
