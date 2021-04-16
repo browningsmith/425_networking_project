@@ -270,8 +270,8 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    // defining the receivedPacket
-    struct packet receivedPacket;
+    // Create the receivedPacket
+    /*struct packet receivedPacket;
     receivedPacket.length = (uint32_t) 0;
 
     // Attempt to allocate space for receivedPacket payload
@@ -280,7 +280,10 @@ int main(int argc, char** argv)
     {
         perror("Unable to allocate space to store payload of receivedPacket");
         return -1;
-    }
+    }*/
+
+    // Create the receivedPacket
+    struct packet* receivedPacket = newPacket(0, 0, 0, 0);
 
     // Attempt to allocate space for toServerBuffer
     toServerBuffer = malloc(4*sizeof(uint32_t) + BUFFER_LEN);
@@ -552,7 +555,7 @@ int main(int argc, char** argv)
                     }
 
                     // Add data to packet
-                    bytesExpected = addToPacket(fromServerBuffer, &receivedPacket, bytesRead, &segmentExpected, bytesExpected);
+                    bytesExpected = addToPacket(fromServerBuffer, receivedPacket, bytesRead, &segmentExpected, bytesExpected);
 
                     // If bytesExpected is 0, we just finished reading a whole packet
                     if (bytesExpected == 0)
@@ -561,9 +564,9 @@ int main(int argc, char** argv)
                         bytesExpected = sizeof(uint32_t);
 
                         // If the packet is a data packet, send the payload to client
-                        if (receivedPacket.type != 0)
+                        if (receivedPacket->type != 0)
                         {
-                            int bytesSent = send(clientSocketFD, receivedPacket.payload, receivedPacket.length, 0);
+                            int bytesSent = send(clientSocketFD, receivedPacket->payload, receivedPacket->length, 0);
 
                             // Report if there was an error (just for debugging, no need to exit)
                             if (bytesSent < 0)
@@ -637,8 +640,8 @@ int main(int argc, char** argv)
     }
 
     // free buffers
+    deletePacket(receivedPacket);
     free(dataPacket.payload);
-    free(receivedPacket.payload);
     free(toServerBuffer);
     free(fromServerBuffer);
 
