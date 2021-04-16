@@ -127,6 +127,30 @@ struct packet* pop(LinkedList* list);
 int max(int a, int b);
 
 /******************************************
+ * newPacket
+ * 
+ * Arguments: uint32_t type, seqN, ackN,
+ *                     length
+ * Returns: struct packet*
+ * 
+ * Allocates space for a new packet and
+ * packet payload, and sets the given
+ * attributes
+ *****************************************/
+struct packet* newPacket(uint32_t type, uint32_t seqN, uint32_t ackN, uint32_t length);
+
+/******************************************
+ * deletePacket
+ * 
+ * Arguments: struct packet* pck
+ * Returns: void
+ * 
+ * Frees the memory allocated for the
+ * given packet and packet payload
+ *****************************************/
+void deletePacket(struct packet* pck);
+
+/******************************************
  * compressPacket
  * 
  * Arguments: char* buffer, struct packet
@@ -709,6 +733,36 @@ int max(int a, int b)
     }
 
     return b;
+}
+
+struct packet* newPacket(uint32_t type, uint32_t seqN, uint32_t ackN, uint32_t length)
+{
+    struct packet* newPacket = malloc(sizeof(struct packet));
+    if (newPacket == NULL)
+    {
+        perror("Unable to allocate space for new packet");
+        exit(-1);
+    }
+
+    newPacket->payload = malloc(BUFFER_LEN);
+    if (newPacket->payload == NULL)
+    {
+        perror("Unable to allocate space for packet payload");
+        exit(-1);
+    }
+
+    newPacket->type = type;
+    newPacket->seqN = seqN;
+    newPacket->ackN = ackN;
+    newPacket->length = length;
+
+    return newPacket;
+}
+
+void deletePacket(struct packet* pck)
+{
+    free(pck->payload);
+    free(pck);
 }
 
 int compressPacket(void* buffer, struct packet pck)
