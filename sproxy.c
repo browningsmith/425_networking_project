@@ -449,6 +449,8 @@ int main(int argc, char** argv)
                     nextTimeout.tv_sec += 1;
 
                     // Compress and send heartbeat packet
+                    heartbeatPacket.seqN = seqN;
+                    heartbeatPacket.ackN = ackN;
                     int bytesToSend = compressPacket(toClientBuffer, heartbeatPacket);
                     int bytesSent = send(clientSocketFD, toClientBuffer, bytesToSend, 0);
 
@@ -459,7 +461,7 @@ int main(int argc, char** argv)
                     }
                     else
                     {
-                        printf("Sent heartbeat to cproxy\n");
+                        printf("Sent heartbeat packet with seqN %i ackN %i\n", heartbeatPacket.seqN, heartbeatPacket.ackN);
                     }
                 }
                 // If there was an error with select, this is non recoverable
@@ -562,6 +564,8 @@ int main(int argc, char** argv)
                                 printf("Client has new sessionID\n");
 
                                 sessionID = newID;
+                                seqN = receivedPacket->ackN;
+                                ackN = receivedPacket->seqN + 1;
 
                                 if (isNewTelnetSession != 0)
                                 {

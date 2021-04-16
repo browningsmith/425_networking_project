@@ -346,6 +346,8 @@ int main(int argc, char** argv)
             {
                 clientConnected = 1;
                 sessionID = generateID(sessionID);
+                seqN = 0;
+                ackN = 1;
                 printf("cproxy accepted new connection from client!\n");
             }
         }
@@ -461,6 +463,8 @@ int main(int argc, char** argv)
                     nextTimeout.tv_sec += 1;
 
                     // Compress and send heartbeat packet
+                    heartbeatPacket.seqN = seqN;
+                    heartbeatPacket.ackN = ackN;
                     int bytesToSend = compressPacket(toServerBuffer, heartbeatPacket);
                     int bytesSent = send(serverSocketFD, toServerBuffer, bytesToSend, 0);
 
@@ -471,7 +475,7 @@ int main(int argc, char** argv)
                     }
                     else
                     {
-                        printf("Sent heartbeat to sproxy\n");
+                        printf("Sent heartbeat with seqN %i ackN %i\n", heartbeatPacket.seqN, heartbeatPacket.ackN);
                     }
                 }
                 // If there was an error with select, this is non recoverable
