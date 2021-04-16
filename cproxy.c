@@ -568,7 +568,7 @@ int main(int argc, char** argv)
                         }
                         else
                         {
-                            printf("Heartbeat received from sproxy\n");
+                            printf("Heartbeat received with seqN %i ackN %i\n", receivedPacket->seqN, receivedPacket->ackN);
                         }
                         
                     }

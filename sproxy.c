@@ -555,7 +555,7 @@ int main(int argc, char** argv)
                         // If the packet is a heartbeat packet, check if new session ID matches the current session ID
                         else
                         {
-                            printf("Heartbeat received from cproxy\n");
+                            printf("Heartbeat received with seqN %i ackN %i\n", receivedPacket->seqN, receivedPacket->ackN);
 
                             int newID = *(int*) receivedPacket->payload;
 
