@@ -393,17 +393,17 @@ int main(int argc, char** argv)
             {
                 perror("cproxy unable to connect to server. Trying again in one second");
 
-            // close server socket to avoid TOO MANY OPEN FILES error
-            if (close(serverSocketFD) < 0)
-            {
-                perror("cproxy unable to properly close server socket");
-            }
+                // close server socket to avoid TOO MANY OPEN FILES error
+                if (close(serverSocketFD) < 0)
+                {
+                    perror("cproxy unable to properly close server socket");
+                }
 
-            struct timeval oneSec = {
-                .tv_sec = 1,
-                .tv_usec = 0
-            };
-		    select(0, NULL, NULL, NULL, &oneSec);
+                struct timeval oneSec = {
+                    .tv_sec = 1,
+                    .tv_usec = 0
+                };
+                select(0, NULL, NULL, NULL, &oneSec);
 
                 continue; // Repeat loop to attempt a new connection
             }
@@ -606,9 +606,12 @@ int main(int argc, char** argv)
                                 if (bytesSent < 0)
                                 {
                                     perror("Unable to send data to telnet");
+                                    // Don't update ackN, so that it will be retransmitted
                                 }
-
-                                ackN++;
+                                else
+                                {
+                                    ackN++;
+                                }
                             }
                             else
                             {
@@ -629,7 +632,6 @@ int main(int argc, char** argv)
                                 clearAckdPackets(&unAckdPackets, receivedPacket->ackN);
                             }
                         }
-                        
                     }
                 }
 

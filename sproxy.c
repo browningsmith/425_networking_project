@@ -591,10 +591,13 @@ int main(int argc, char** argv)
                                 // Report if there was an error (just for debugging, no need to exit)
                                 if (bytesSent < 0)
                                 {
-                                    perror("Unable to send data to cproxy");
+                                    perror("Unable to send data to telnet daemon");
+                                    // Don't update ackN, so that data will be retransmitted
                                 }
-
-                                ackN++;
+                                else
+                                {
+                                    ackN++;
+                                } 
                             }
                             else
                             {
