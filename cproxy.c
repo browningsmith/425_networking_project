@@ -113,6 +113,16 @@ void pushTail(LinkedList* list, struct packet* pck);
  *************************************************/
 struct packet* pop(LinkedList* list);
 
+/**************************************************
+ * clearList
+ * 
+ * Arguments: LinkedList* list
+ * Returns: void
+ * 
+ * Deletes everything in the linked list
+ *************************************************/
+void clearList(LinkedList* list);
+
 /*************************************
  * max
  * 
@@ -691,6 +701,15 @@ struct packet* pop(LinkedList* list)
     free(poppedNode);
 
     return pck;
+}
+
+void clearList(LinkedList* list)
+{
+    while (list->head != NULL)
+    {
+        struct packet* poppedPacket = pop(list);
+        deletePacket(poppedPacket);
+    }
 }
 
 int max(int a, int b)
