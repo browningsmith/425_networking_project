@@ -242,7 +242,10 @@ int main(int argc, char** argv)
     int bytesExpected = sizeof(uint32_t); // Size of packet.type
     int bytesRead = 0;
 
-    LinkedList unAckdPackets;
+    LinkedList unAckdPackets = {
+
+        .head = NULL
+    };
 
     // Booleans that keep track of which sockets are connected
     int clientConnected = 0; // 0 false, !0 true
