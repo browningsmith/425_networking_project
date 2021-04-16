@@ -601,11 +601,7 @@ int main(int argc, char** argv)
                                 printf("Data's seqN %i does not match ackN %i. Discarding\n", receivedPacket->seqN, ackN);
                             }
 
-                            if (receivedPacket->ackN > ackN)
-                            {
-                                ackN = receivedPacket->ackN;
-                                clearAckdPackets(&unAckdPackets, ackN);
-                            }
+                            clearAckdPackets(&unAckdPackets, receivedPacket->ackN);
                         }
                         // If the packet is a heartbeat packet, check if new session ID matches the current session ID
                         else
@@ -646,11 +642,7 @@ int main(int argc, char** argv)
                             {
                                 printf("Client has old sessionID, maintaining current telnet session\n");
                                 pauseDaemonData = 0;
-                                if (receivedPacket->ackN > ackN)
-                                {
-                                    ackN = receivedPacket->ackN;
-                                    clearAckdPackets(&unAckdPackets, ackN);
-                                }
+                                clearAckdPackets(&unAckdPackets, receivedPacket->ackN);
                             }
                         }
                     }

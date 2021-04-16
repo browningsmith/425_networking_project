@@ -614,12 +614,8 @@ int main(int argc, char** argv)
                             {
                                 printf("Data's seqN %i does not match ackN %i. Discarding\n", receivedPacket->seqN, ackN);
                             }
-
-                            if (receivedPacket->ackN > ackN)
-                            {
-                                ackN = receivedPacket->ackN;
-                                clearAckdPackets(&unAckdPackets, ackN);
-                            }
+                                
+                            clearAckdPackets(&unAckdPackets, receivedPacket->ackN);
                         }
                         else
                         {
@@ -630,12 +626,7 @@ int main(int argc, char** argv)
                             }
                             else
                             {
-                                // Update ackN and remove ackd packets
-                                if (receivedPacket->ackN > ackN)
-                                {
-                                    ackN = receivedPacket->ackN;
-                                    clearAckdPackets(&unAckdPackets, ackN);
-                                }
+                                clearAckdPackets(&unAckdPackets, receivedPacket->ackN);
                             }
                         }
                         
