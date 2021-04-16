@@ -271,18 +271,6 @@ int main(int argc, char** argv)
     }
 
     // Create the receivedPacket
-    /*struct packet receivedPacket;
-    receivedPacket.length = (uint32_t) 0;
-
-    // Attempt to allocate space for receivedPacket payload
-    receivedPacket.payload = malloc(BUFFER_LEN);
-    if (receivedPacket.payload == NULL)
-    {
-        perror("Unable to allocate space to store payload of receivedPacket");
-        return -1;
-    }*/
-
-    // Create the receivedPacket
     struct packet* receivedPacket = newPacket(0, 0, 0, 0);
 
     // Attempt to allocate space for toServerBuffer
