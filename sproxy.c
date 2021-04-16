@@ -472,6 +472,32 @@ int main(int argc, char** argv)
                     {
                         printf("Sent heartbeat packet with seqN %i ackN %i\n", heartbeatPacket.seqN, heartbeatPacket.ackN);
                     }
+
+                    // Retransmit unackd packets
+                    if (pauseDaemonData == 0)
+                    {
+                        if (unAckdPackets.head != NULL)
+                        {
+                            LLNode* node = unAckdPackets.head;
+                            while (node != NULL)
+                            {
+                                bytesToSend = compressPacket(toClientBuffer, *node->pck);
+                                bytesSent = send(clientSocketFD, toClientBuffer, bytesToSend, 0);
+
+                                // Report if there was an error (just for debugging, no need to exit)
+                                if (bytesSent < 0)
+                                {
+                                    perror("Unable to retransmit a data packet to cproxy");
+                                }
+                                else
+                                {
+                                    printf("Retransmitted data with seqN %i ackN %i\n", node->pck->seqN, node->pck->ackN);
+                                }
+                                
+                                node = node->next;
+                            }
+                        }
+                    }
                 }
                 // If there was an error with select, this is non recoverable
                 else if (resultOfSelect < 0)
@@ -571,6 +597,12 @@ int main(int argc, char** argv)
                             {
                                 printf("Data's seqN %i does not match ackN %i. Discarding\n", receivedPacket->seqN, ackN);
                             }
+
+                            if (receivedPacket->ackN > ackN)
+                            {
+                                ackN = receivedPacket->ackN;
+                                clearAckdPackets(&unAckdPackets, ackN);
+                            }
                         }
                         // If the packet is a heartbeat packet, check if new session ID matches the current session ID
                         else
@@ -611,6 +643,11 @@ int main(int argc, char** argv)
                             {
                                 printf("Client has old sessionID, maintaining current telnet session\n");
                                 pauseDaemonData = 0;
+                                if (receivedPacket->ackN > ackN)
+                                {
+                                    ackN = receivedPacket->ackN;
+                                    clearAckdPackets(&unAckdPackets, ackN);
+                                }
                             }
                         }
                     }

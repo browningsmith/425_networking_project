@@ -236,6 +236,8 @@ int main(int argc, char** argv)
     uint32_t seqN = 0;
     uint32_t ackN = 0;
 
+    int ignoreFirstHeartbeat = 1;
+
     segmentType segmentExpected = PACKET_TYPE;
     int bytesExpected = sizeof(uint32_t); // Size of packet.type
     int bytesRead = 0;
@@ -354,6 +356,7 @@ int main(int argc, char** argv)
             {
                 printf("cproxy accepted new connection from client!\n");
                 clientConnected = 1;
+                ignoreFirstHeartbeat = 1;
                 clearList(&unAckdPackets);
                 sessionID = generateID(sessionID);
                 seqN = 0;
@@ -486,6 +489,29 @@ int main(int argc, char** argv)
                     {
                         printf("Sent heartbeat with seqN %i ackN %i\n", heartbeatPacket.seqN, heartbeatPacket.ackN);
                     }
+
+                    // Retransmit unackd packets
+                    if (unAckdPackets.head != NULL)
+                    {
+                        LLNode* node = unAckdPackets.head;
+                        while (node != NULL)
+                        {
+                            bytesToSend = compressPacket(toServerBuffer, *node->pck);
+                            bytesSent = send(serverSocketFD, toServerBuffer, bytesToSend, 0);
+
+                            // Report if there was an error (just for debugging, no need to exit)
+                            if (bytesSent < 0)
+                            {
+                                perror("Unable to retransmit a data packet to sproxy");
+                            }
+                            else
+                            {
+                                printf("Retransmitted data with seqN %i ackN %i\n", node->pck->seqN, node->pck->ackN);
+                            }
+                            
+                            node = node->next;
+                        }
+                    }
                 }
                 // If there was an error with select, this is non recoverable
                 else if (resultOfSelect < 0)
@@ -585,10 +611,29 @@ int main(int argc, char** argv)
                             {
                                 printf("Data's seqN %i does not match ackN %i. Discarding\n", receivedPacket->seqN, ackN);
                             }
+
+                            if (receivedPacket->ackN > ackN)
+                            {
+                                ackN = receivedPacket->ackN;
+                                clearAckdPackets(&unAckdPackets, ackN);
+                            }
                         }
                         else
                         {
                             printf("Heartbeat received with seqN %i ackN %i\n", receivedPacket->seqN, receivedPacket->ackN);
+                            if (ignoreFirstHeartbeat != 0)
+                            {
+                                ignoreFirstHeartbeat = 0;
+                            }
+                            else
+                            {
+                                // Update ackN and remove ackd packets
+                                if (receivedPacket->ackN > ackN)
+                                {
+                                    ackN = receivedPacket->ackN;
+                                    clearAckdPackets(&unAckdPackets, ackN);
+                                }
+                            }
                         }
                         
                     }
