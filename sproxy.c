@@ -248,19 +248,6 @@ int main(int argc, char** argv)
     heartbeatPacket.length = (uint32_t) sizeof(int);
     heartbeatPacket.payload = (void*) &sessionID;
 
-    // defining the data packet
-    struct packet dataPacket;
-    dataPacket.type = (uint32_t) 1;
-    dataPacket.length = (uint32_t) 0;
-    
-    // Attempt to allocate space for dataPacket payload
-    dataPacket.payload = malloc(BUFFER_LEN);
-    if (dataPacket.payload == NULL)
-    {
-        perror("Unable to allocate space to store payload of dataPacket");
-        return -1;
-    }
-
     // Create the receivedPacket
     struct packet* receivedPacket = newPacket(0,0,0,0);
 
@@ -611,12 +598,18 @@ int main(int argc, char** argv)
                         continue;
                     }
                     
-                    int serverBytesRead = recv(serverSocketFD, dataPacket.payload, BUFFER_LEN, 0);
+                    // Create data packet
+                    struct packet* dataPacket = newPacket(1, seqN, ackN, 0);
+                    
+                    int serverBytesRead = recv(serverSocketFD, dataPacket->payload, BUFFER_LEN, 0);
                     // If bytesRead is 0 or -1, controlled disconnect, disconnect both sockets and
                     // break into outer while loop
                     if (serverBytesRead <= 0)
                     {
                         printf("recv() returned with %i on serverSocketFD\n", serverBytesRead);
+
+                        // Delete packet
+                        deletePacket(dataPacket);
                         
                         // Close server socket
                         if (close(serverSocketFD)) // close returns -1 on error
@@ -644,14 +637,17 @@ int main(int argc, char** argv)
                     }
 
                     // Create packet and send to clientSocketFD
-                    dataPacket.length = serverBytesRead;
-                    int bytesToSend = compressPacket(toClientBuffer, dataPacket);
+                    dataPacket->length = serverBytesRead;
+                    int bytesToSend = compressPacket(toClientBuffer, *dataPacket);
                     int bytesSent = send(clientSocketFD, toClientBuffer, bytesToSend, 0);
                     // Report if there was an error (just for debugging, no need to exit)
                     if (bytesSent < 0)
                     {
                         perror("Unable to send data to cproxy");
                     }
+                    seqN++;
+
+                    deletePacket(dataPacket);
                 }
             }
         }
@@ -667,7 +663,6 @@ int main(int argc, char** argv)
 
     // free buffers
     deletePacket(receivedPacket);
-    free(dataPacket.payload);
     free(toClientBuffer);
     free(fromClientBuffer);
 
