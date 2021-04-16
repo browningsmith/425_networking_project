@@ -136,6 +136,30 @@ int max(int a, int b);
 int generateID(int oldID);
 
 /******************************************
+ * newPacket
+ * 
+ * Arguments: uint32_t type, seqN, ackN,
+ *                     length
+ * Returns: struct packet*
+ * 
+ * Allocates space for a new packet and
+ * packet payload, and sets the given
+ * attributes
+ *****************************************/
+struct packet* newPacket(uint32_t type, uint32_t seqN, uint32_t ackN, uint32_t length);
+
+/******************************************
+ * deletePacket
+ * 
+ * Arguments: struct packet* pck
+ * Returns: void
+ * 
+ * Frees the memory allocated for the
+ * given packet and packet payload
+ *****************************************/
+void deletePacket(struct packet* pck);
+
+/******************************************
  * compressPacket
  * 
  * Arguments: char* buffer, struct packet
@@ -188,9 +212,14 @@ int addToPacket(void* buffer, struct packet* pck, int n, segmentType* currentSeg
 int main(int argc, char** argv)
 {
     int sessionID = 0;
+    uint32_t seqN = 0;
+    uint32_t ackN = 0;
+
     segmentType segmentExpected = PACKET_TYPE;
     int bytesExpected = sizeof(uint32_t); // Size of packet.type
     int bytesRead = 0;
+
+    LinkedList unAckdPackets;
 
     // Booleans that keep track of which sockets are connected
     int clientConnected = 0; // 0 false, !0 true
@@ -683,6 +712,36 @@ int generateID(int oldID)
     } while (newID == oldID);
 
     return newID;
+}
+
+struct packet* newPacket(uint32_t type, uint32_t seqN, uint32_t ackN, uint32_t length)
+{
+    struct packet* newPacket = malloc(sizeof(struct packet));
+    if (newPacket == NULL)
+    {
+        perror("Unable to allocate space for new packet");
+        exit(-1);
+    }
+
+    newPacket->payload = malloc(BUFFER_LEN);
+    if (newPacket->payload == NULL)
+    {
+        perror("Unable to allocate space for packet payload");
+        exit(-1);
+    }
+
+    newPacket->type = type;
+    newPacket->seqN = seqN;
+    newPacket->ackN = ackN;
+    newPacket->length = length;
+
+    return newPacket;
+}
+
+void deletePacket(struct packet* pck)
+{
+    free(pck->payload);
+    free(pck);
 }
 
 int compressPacket(void* buffer, struct packet pck)

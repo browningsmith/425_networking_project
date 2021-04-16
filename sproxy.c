@@ -179,11 +179,17 @@ int addToPacket(void* buffer, struct packet* pck, int n, segmentType* currentSeg
 int main(int argc, char** argv)
 {
     int sessionID = 0;
-    int isNewTelnetSession = 0;
-    int pauseDaemonData = 0;
+    uint32_t seqN = 0;
+    uint32_t ackN = 0;
+
+    int isNewTelnetSession = 0; // Is true if new socket to telnet daemon was just opened
+    int pauseDaemonData = 0; // Is true if we need to hold off sending data to client
+
     segmentType segmentExpected = PACKET_TYPE;
     int bytesExpected = sizeof(uint32_t); // Size of packet.type
     int bytesRead = 0;
+
+    LinkedList unAckdPackets;
     
     // Booleans that keep track of which sockets are connected
     int clientConnected = 0; // 0 false, !0 true
