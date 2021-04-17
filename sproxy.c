@@ -43,6 +43,7 @@ Note:       This is the server part of the program. The program takes 1
 #define _DEFAULT_SOURCE // Needed to use timersub on Windows Subsystem for Linux
 
 #include <arpa/inet.h>
+#include <errno.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <stdio.h>
@@ -371,6 +372,61 @@ int main(int argc, char** argv)
             printf("sproxy attempting to connect to %s %i...\n", LOCALHOST, htons(serverAddress.sin_port));
             if (connect(serverSocketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0)
             {
+                struct timeval timeout;
+                
+                // If connection is still in progress
+                if (errno == EINPROGRESS)
+                {
+                    // Wait 10 seconds for server socket to be writable
+                    FD_ZERO(&socketSet); // zero out socketSet
+                    FD_SET(serverSocketFD, &socketSet); // add server socket
+                    
+                    timeout.tv_sec = 10;
+                    timeout.tv_usec = 0;
+
+                    int resultOfSelect = select(
+
+                        serverSocketFD + 1,
+                        NULL,
+                        &socketSet,
+                        NULL,
+                        &timeout
+                    );
+                    if (resultOfSelect < 0)
+                    {
+                        perror("FATAL: sproxy unable to use select to check for connection");
+
+                        // Close client socket, so it doesn't stay open
+                        if (close(clientSocketFD)) // close returns -1 on error
+                        {
+                            perror("sproxy unable to properly close client socket");
+                        }
+                        else
+                        {
+                            printf("sproxy closed connection to client\n");
+                        }
+
+                        return -1;
+                    }
+                    // If select is not 0, the server may have connected
+                    if (resultOfSelect != 0)
+                    {
+                        // Check value of SO_ERROR
+                        int result;
+                        socklen_t resultSize = sizeof(int);
+                        getsockopt(serverSocketFD, SOL_SOCKET, SO_ERROR, &result, &resultSize);
+                        if (result == 0) // Server connected successfully
+                        {
+                            serverConnected = 1;
+                            isNewTelnetSession = 1;
+                            clearList(&unAckdPackets);
+                            pauseDaemonData = 0;
+                            printf("sproxy successfully connected to server!\n");
+                            continue;
+                        }
+                    }
+                }
+                
                 perror("sproxy unable to connect to telnet daemon. Trying again in one second");
 
                 // Close server socket so we don't have a TOO MANY OPEN FILES error
@@ -379,12 +435,10 @@ int main(int argc, char** argv)
                     perror("sproxy unable to properly close server socket");
                 }
 
-                struct timeval oneSec = {
-                    .tv_sec = 1,
-                    .tv_usec = 0
-                };
+                timeout.tv_sec = 1;
+                timeout.tv_usec = 0;
 
-                select(0, NULL, NULL, NULL, &oneSec);
+                select(0, NULL, NULL, NULL, &timeout);
 
                 continue; // move to attempt to reconnect to telnet daemon
             }
