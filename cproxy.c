@@ -41,6 +41,7 @@ Note:       This is the client part of the program. The program takes 3
 #define _DEFAULT_SOURCE // Needed to use timersub on Windows Subsystem for Linux
 
 #include <arpa/inet.h>
+#include <errno.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <stdio.h>
@@ -373,7 +374,7 @@ int main(int argc, char** argv)
             printf("server is not connected. Connecting...\n");
             
             // Create new server socket
-            serverSocketFD = socket(AF_INET, SOCK_STREAM, 0);
+            serverSocketFD = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
             if (serverSocketFD < 0) // socket returns -1 on error
             {
                 perror("cproxy unable to create server socket. Trying again in one second");
@@ -391,6 +392,59 @@ int main(int argc, char** argv)
             printf("cproxy attempting to connect to %s %i\n", argv[2], htons(serverAddress.sin_port));
             if (connect(serverSocketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0)
             {
+                struct timeval timeout;
+                
+                // If connection is still in progress
+                if (errno == EINPROGRESS)
+                {
+                    // Wait 10 seconds for server socket to be writable
+                    FD_ZERO(&socketSet); // zero out socketSet
+                    FD_SET(serverSocketFD, &socketSet); // add server socket
+                    
+                    timeout.tv_sec = 10;
+                    timeout.tv_usec = 0;
+
+                    int resultOfSelect = select(
+
+                        serverSocketFD + 1,
+                        NULL,
+                        &socketSet,
+                        NULL,
+                        &timeout
+                    );
+                    if (resultOfSelect < 0)
+                    {
+                        perror("FATAL: cproxy unable to use select to check for connection");
+
+                        // Close client socket, so it doesn't stay open
+                        if (close(clientSocketFD)) // close returns -1 on error
+                        {
+                            perror("cproxy unable to properly close client socket");
+                        }
+                        else
+                        {
+                            printf("cproxy closed connection to client\n");
+                        }
+
+                        return -1;
+                    }
+                    // If select is not 0, the server may have connected
+                    if (resultOfSelect != 0)
+                    {
+                        // Check value of SO_ERROR
+                        int result;
+                        socklen_t resultSize = sizeof(int);
+                        getsockopt(serverSocketFD, SOL_SOCKET, SO_ERROR, &result, &resultSize);
+                        if (result == 0) // Server connected successfully
+                        {
+                            serverConnected = 1;
+                            gettimeofday(&timeLastMessageReceived, NULL);
+                            printf("cproxy successfully connected to server!\n");
+                            continue;
+                        }
+                    }
+                }
+                
                 perror("cproxy unable to connect to server. Trying again in one second");
 
                 // close server socket to avoid TOO MANY OPEN FILES error
@@ -399,18 +453,18 @@ int main(int argc, char** argv)
                     perror("cproxy unable to properly close server socket");
                 }
 
-                struct timeval oneSec = {
-                    .tv_sec = 1,
-                    .tv_usec = 0
-                };
-                select(0, NULL, NULL, NULL, &oneSec);
+                timeout.tv_sec = 1;
+                timeout.tv_usec = 0;
+                select(0, NULL, NULL, NULL, &timeout);
 
                 continue; // Repeat loop to attempt a new connection
             }
-
-            serverConnected = 1;
-            gettimeofday(&timeLastMessageReceived, NULL);
-            printf("cproxy successfully connected to server!\n");
+            else // Server connected successfully
+            {
+                serverConnected = 1;
+                gettimeofday(&timeLastMessageReceived, NULL);
+                printf("cproxy successfully connected to server!\n");
+            }
         }
 
         if ((serverConnected != 0) && (clientConnected != 0))
