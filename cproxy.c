@@ -1,6 +1,6 @@
 /*
 Authors:    Keith Smith, Sean Callahan
-Assignment: Mobile TCP Proxy, Milestone 3
+Assignment: Mobile TCP Proxy, Milestone 3 (+ Extra Credit)
 file:       cproxy.c
 Class:      425
 Due Date:   04/16/2021
@@ -31,6 +31,13 @@ Note:       This is the client part of the program. The program takes 3
             ID. If it is a new session ID that sproxy did not have before,
             a new telnet daemon session will be established by sproxy,
             otherwise the current session is maintained.
+
+            Each packet that is sent is sent with a seqN, which is used
+            by sproxy to assemble the data in the proper order before it
+            is sent to the telnet daemon, as well as ackN, which tells
+            sproxy the sequence number of the next packet cproxy is
+            expecting. This maintains reliable data transfer even in the
+            event of a disconnect.
 
             If cproxy does not receive any data from the server for over
             3 seconds, it will automatically disconnect the server socket
