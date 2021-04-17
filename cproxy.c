@@ -1022,5 +1022,3 @@ int addToPacket(void* buffer, struct packet* pck, int n, segmentType* currentSeg
 
     return remaining;
 }
-
-
